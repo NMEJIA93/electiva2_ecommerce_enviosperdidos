@@ -8,7 +8,7 @@ import {
 
 import {
     createdCheckoutOrder
-} from '../controllers/checkout-order-controller';
+} from '../controllers/preorder-controller';
 
 const orderRouter: Router = express.Router();
 

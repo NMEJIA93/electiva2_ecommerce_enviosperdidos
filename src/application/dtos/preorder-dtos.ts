@@ -1,4 +1,4 @@
-
+import { IPreorder } from "../../domain/models/interfaces/IPreorder";
 
 export enum PreOrderStatus {
     PENDING = 'PENDING',
@@ -26,4 +26,18 @@ export interface PreOrderRequestDTO {
     products: PreOrderProductDTO[];
     shippingAddress: PreOrderShippingAddressDTO;
     paymentMethod: string;
+}
+
+export function buildPreOrder(dto: PreOrderRequestDTO): IPreorder {
+    return {
+        userId: dto.userId,
+        products: dto.products,
+        shippingAddress: dto.shippingAddress,
+        paymentMethod: dto.paymentMethod,
+        shippingCost: 0, 
+        total: 0, 
+        status: PreOrderStatus.PENDING,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
 }

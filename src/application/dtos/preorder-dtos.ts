@@ -10,6 +10,8 @@ export enum PreOrderStatus {
 export interface PreOrderProductDTO {
     productId: string;
     quantity: number;
+    price: number;
+
 }
 
 export interface PreOrderShippingAddressDTO {

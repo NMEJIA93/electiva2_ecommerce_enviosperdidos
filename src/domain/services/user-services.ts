@@ -7,12 +7,11 @@ import * as bcrypt from 'bcryptjs';
 export const saveUser = async (userRepo: IUserRepository, user: IUsers) => {
     try {
 
-        // Verificar email único
         const existingUser = await userRepo.findByEmail(user.email);
         if (existingUser) {
             throw new Error('Email must be unique "email already in use"');
         }
-        // Validar contraseña segura
+
         if (!isPasswordSecure(user.password)) {
             throw new Error('Password must be at least 8 characters and include uppercase, lowercase, and numbers');
         }

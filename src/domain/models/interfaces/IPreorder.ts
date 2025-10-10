@@ -1,9 +1,21 @@
 import { PreOrderStatus } from "../../../application/dtos/preorder-dtos";
 
+
+
+export interface IPreorderProduct {
+    productId: string;
+    name: string;
+    description?: string;
+    quantity: number;
+    price: number;
+    categoryId: string;
+    categoryName?: string;
+}
+
 export interface IPreorder {
     _id?: string;
     userId: string;
-    products: { productId: string; quantity: number }[];
+    products: IPreorderProduct[]; // Usar el nuevo tipo aquí
     shippingAddress: {
         country: string;
         state: string;

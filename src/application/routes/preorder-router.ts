@@ -10,8 +10,8 @@ import {
     createdCheckoutOrder
 } from '../controllers/preorder-controller';
 
-const orderRouter: Router = express.Router();
+const preOrderRouter: Router = express.Router();
 
-orderRouter.post('/user/preorder',usePreOrderValidation, createdCheckoutOrder)
+preOrderRouter.post('/user/preorder',usePreOrderValidation, createdCheckoutOrder)
 
-export default orderRouter;
+export default preOrderRouter;

@@ -3,12 +3,15 @@ import userRouter from './users-route';
 import authRouter from './auth-route';
 import productRouter from './product-route';
 import inventoryRouter from './inventory-route';
+import providerRouter from './provider-route';
+import categoryRouter from './categories-route';
+import preorderRouter from './preorder-router'; 
 
 // Swagger UI setup
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
-import providerRouter from './provider-route';
-import categoryRouter from './categories-route';
+import { Preorder } from '../../domain/entities/Preorder';
+
 const swaggerDocument = YAML.load('./swagger.yaml');
 
 const appRouter: Router = Router();
@@ -29,6 +32,7 @@ appRouter.use('/api/v1', productRouter);
 appRouter.use('/api/v1', providerRouter);
 appRouter.use('/api/v1', categoryRouter);
 appRouter.use('/api/v1', inventoryRouter);
+appRouter.use('/api/v1', preorderRouter);
 
 
 export default appRouter;

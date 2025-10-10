@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
-import { buildPreOrder } from '../dtos/preorder-dtos';
+import { buildPreOrder, PreOrderRequestDTO, PreOrderResponseDTO } from '../dtos/preorder-dtos';
 
 export const createdCheckoutOrder = async (request: Request, response: Response) => {
     try {
 
-        const newOrder = buildPreOrder(request.body);
+        const preOrderRequest: PreOrderRequestDTO = request.body;
+        const newPreOrder = buildPreOrder(preOrderRequest);
 
         // Aquí iría la lógica para guardar la preorden en la base de datos
         // const savedOrder = await savePreOrderToDB(newOrder);
@@ -12,7 +13,7 @@ export const createdCheckoutOrder = async (request: Request, response: Response)
 
         response.status(200).json({
             ok: true,
-            order: newOrder
+            order: newPreOrder
         });
     } catch (error) {
     }

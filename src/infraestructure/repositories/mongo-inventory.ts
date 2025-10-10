@@ -58,4 +58,18 @@ export class MongoInventoryRepository implements IInventoryRepository {
       reservedStock: inventory.reservedStock,
     } as Inventory;
   }
+
+  async getInventoryByProductId(productId: string): Promise<Inventory> {
+        const inventory = await InventoryModel.findOne({ productId }).exec();
+        if (!inventory) {
+            throw new Error("Inventory record not found for this product");
+        }
+        return {
+            id: inventory._id.toString(),
+            productId: inventory.productId.toString(),
+            price: inventory.price,
+            stock: inventory.stock,
+            reservedStock: inventory.reservedStock,
+        } as Inventory;
+    }
 }

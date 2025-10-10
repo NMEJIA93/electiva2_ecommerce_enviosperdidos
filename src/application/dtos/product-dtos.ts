@@ -3,20 +3,24 @@ import { IProduct } from "../../domain/models/interfaces/IProduct";
 export interface ProductRequest {
     name: string;
     description: string;
-    price: number;
+    cost: number;
     stock: number;
     categoryId: string;
     images?: string[];
+    providers: string[];
+    classification?: string;
+
 }
 
-export function buildProductRequest(dti: ProductRequest): IProduct {
+export function buildProductRequest(dto: ProductRequest): IProduct {
     return {
         id: '',
-        name: dti.name,
-        description: dti.description,
-        price: dti.price,
-        stock: dti.stock,
-        categoryId: dti.categoryId,
-        images: dti.images || []
+        name: dto.name,
+        description: dto.description,
+        cost: dto.cost,
+        categoryId: dto.categoryId,
+        images: dto.images || [],
+        providers: dto.providers || [],
+        classification: dto.classification
     };
 }

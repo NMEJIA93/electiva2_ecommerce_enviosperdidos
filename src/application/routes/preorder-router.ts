@@ -3,7 +3,9 @@ import { usePreOrderValidation } from '../middlewares/preorder-validators';
 
 import {
     authenticateToken,
-    authorizeProfileAccess
+    authorizeProfileAccess,
+    authorizeUserAccess,
+    authorizePreorderConfirmation
 } from '../middlewares/auth-middleware';
 
 import {
@@ -13,7 +15,16 @@ import {
 
 const preOrderRouter: Router = express.Router();
 
-preOrderRouter.post('/user/preorder', usePreOrderValidation, createdCheckoutOrder);
-preOrderRouter.patch('/preorder/:preorderId/confirm', authenticateToken, confirmPreorder);
+preOrderRouter.post('/user/:userId/preorder', authenticateToken, authorizeUserAccess, usePreOrderValidation, createdCheckoutOrder);
+preOrderRouter.patch('/user/:userId/preorder/:preorderId/confirm', authenticateToken, authorizePreorderConfirmation, confirmPreorder);
 
 export default preOrderRouter;
+
+
+/*
+userRouter.post('/user', useParamValidation, createUser)
+userRouter.put('/user/profile/:id', authenticateToken,authorizeProfileAccess, updateUser)
+userRouter.patch('/user/profile/:id', authenticateToken,authorizeProfileAccess, updatePartialUser)
+userRouter.get('/user/profile/:id', authenticateToken, authorizeProfileAccess, getUserProfile)
+userRouter.get('/users', getAllUsers)
+*/

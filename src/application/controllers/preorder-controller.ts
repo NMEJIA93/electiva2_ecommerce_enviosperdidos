@@ -9,8 +9,14 @@ const inventoryRepo = new MongoInventoryRepository();
 
 export const createdCheckoutOrder = async (request: Request, response: Response) => {
     try {
+        const { userId } = request.params;
         const preOrderRequest: PreOrderRequestDTO = request.body;
-        const newPreOrder = buildPreOrder(preOrderRequest);
+        
+        // Ensure the userId from params matches the userId in the request body
+        const newPreOrder = buildPreOrder({
+            ...preOrderRequest,
+            userId: userId
+        });
 
         const result = await savePreOrder(preorderRepo, newPreOrder, inventoryRepo);
 

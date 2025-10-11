@@ -5,7 +5,8 @@ import productRouter from './product-route';
 import inventoryRouter from './inventory-route';
 import providerRouter from './provider-route';
 import categoryRouter from './categories-route';
-import preorderRouter from './preorder-router'; 
+import preorderRouter from './preorder-router';
+import orderRouter from './order-route'; 
 
 // Swagger UI setup
 import swaggerUi from 'swagger-ui-express';
@@ -33,6 +34,7 @@ appRouter.use('/api/v1', providerRouter);
 appRouter.use('/api/v1', categoryRouter);
 appRouter.use('/api/v1', inventoryRouter);
 appRouter.use('/api/v1', preorderRouter);
+appRouter.use('/api/v1/orders', orderRouter);
 
 
 export default appRouter;

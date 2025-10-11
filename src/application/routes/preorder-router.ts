@@ -19,12 +19,3 @@ preOrderRouter.post('/user/:userId/preorder', authenticateToken, authorizeUserAc
 preOrderRouter.patch('/user/:userId/preorder/:preorderId/confirm', authenticateToken, authorizePreorderConfirmation, confirmPreorder);
 
 export default preOrderRouter;
-
-
-/*
-userRouter.post('/user', useParamValidation, createUser)
-userRouter.put('/user/profile/:id', authenticateToken,authorizeProfileAccess, updateUser)
-userRouter.patch('/user/profile/:id', authenticateToken,authorizeProfileAccess, updatePartialUser)
-userRouter.get('/user/profile/:id', authenticateToken, authorizeProfileAccess, getUserProfile)
-userRouter.get('/users', getAllUsers)
-*/

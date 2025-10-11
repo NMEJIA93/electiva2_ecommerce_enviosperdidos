@@ -1,32 +1,31 @@
 import { IPreorder } from "../models/interfaces/IPreorder";
 import { Preorder } from "../entities/Preorder";
 import { IPreorderRepository } from "../repositories/IPreorder-repository";
-import { validateStock, validateshippingAddress,isFreeShipping } from "../business-rules/preorder-rules";
+import { validateStock, validateshippingAddress, isFreeShipping } from "../business-rules/preorder-rules";
 import { PreOrderStatus } from '../../application/dtos/preorder-dtos';
 import { IInventoryRepository } from "../repositories/IInventory-repository";
+import { IOrderRepository } from "../repositories/IOrder-repository";
+import { createOrderFromPreorder } from "./order-services";
+import { Order } from "../entities/Order";
 
 export const savePreOrder = async (preorderRepo: IPreorderRepository, preorderData: IPreorder, inventoryRepo: IInventoryRepository): Promise<Preorder> => {
 
     try {
-        // 1. Verificación final de stock
+
         await validateStock(preorderData.products, inventoryRepo);
 
-        // 2. Validación de dirección de envío
         validateshippingAddress(preorderData.shippingAddress);
 
-        // 3. Calcular total de productos
         const totalProducts = preorderData.products.reduce(
             (sum, p) => sum + p.price * p.quantity,
             0
         );
 
-        // 4. Cálculo automático de costos de envío y envío gratis
         let shippingCost = 0;
         if (!isFreeShipping(totalProducts)) {
-            shippingCost = 10000; // Aquí puedes mejorar la lógica según distancia/peso
+            shippingCost = 10000; 
         }
 
-        // 5. Construir la preorden con estado PENDING
         const preorder = new Preorder({
             ...preorderData,
             shippingCost,
@@ -36,7 +35,6 @@ export const savePreOrder = async (preorderRepo: IPreorderRepository, preorderDa
             updatedAt: new Date()
         });
 
-        // 6. Persistir la preorden
         const result = await preorderRepo.save(preorder);
         return result;
     } catch (error) {
@@ -44,35 +42,61 @@ export const savePreOrder = async (preorderRepo: IPreorderRepository, preorderDa
     }
 }
 
-export const confirmPreOrder = async (preorderRepo: IPreorderRepository, preorderId: string): Promise<Preorder> => {
+export const confirmPreOrder = async (
+    preorderRepo: IPreorderRepository,
+    preorderId: string,
+    orderRepo: IOrderRepository,
+    inventoryRepo: IInventoryRepository
+): Promise<{ preorder: Preorder; order: Order }> => {
     try {
-        // 1. Find the preorder by ID
+
         const existingPreorder = await preorderRepo.findById(preorderId);
-        
+
         if (!existingPreorder) {
             throw new Error('Preorder not found');
         }
 
-        // 2. Validate that the preorder can be confirmed (only PENDING status can be confirmed)
         if (existingPreorder.status !== PreOrderStatus.PENDING) {
             throw new Error(`Cannot confirm preorder with status: ${existingPreorder.status}. Only PENDING preorders can be confirmed.`);
         }
 
-        // 3. Update the preorder status to CONFIRMED
+        await validateStock(existingPreorder.products, inventoryRepo);
+
+        // Create order data
+        const orderData = {
+            preorderId: existingPreorder._id!,
+            userId: existingPreorder.userId,
+            products: existingPreorder.products,
+            shippingAddress: existingPreorder.shippingAddress,
+            paymentMethod: existingPreorder.paymentMethod,
+            shippingCost: existingPreorder.shippingCost,
+            total: existingPreorder.total,
+            orderNumber: '',
+            status: 'PENDING' as any,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            emailSent: true
+        };
+
+        const createdOrder = await createOrderFromPreorder(orderRepo, inventoryRepo, orderData);
+
+        // Only update preorder status AFTER order is successfully created
         const updatedPreorder = new Preorder({
             ...existingPreorder,
             status: PreOrderStatus.CONFIRMED,
             updatedAt: new Date()
         });
 
-        // 4. Save the updated preorder
-        const result = await preorderRepo.update(preorderId, updatedPreorder);
-        
-        if (!result) {
+        const confirmedPreorder = await preorderRepo.update(preorderId, updatedPreorder);
+
+        if (!confirmedPreorder) {
             throw new Error('Failed to update preorder');
         }
 
-        return result;
+        return {
+            preorder: confirmedPreorder,
+            order: createdOrder
+        };
     } catch (error) {
         throw new Error(`[ERROR TO SERVICE] - Error confirming preorder: ${error}`);
     }

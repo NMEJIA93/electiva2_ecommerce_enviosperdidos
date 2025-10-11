@@ -60,6 +60,7 @@ export function authorizeUserAccess(request: Request, response: Response, next: 
     const userIdFromToken = request.user?.id;
     const userIdFromParams = request.params.userId;
 
+
     if (!userIdFromToken) {
         return response.status(401).json({
             ok: false,
@@ -74,11 +75,22 @@ export function authorizeUserAccess(request: Request, response: Response, next: 
         });
     }
 
-    // Validate that the user from token matches the user from params
-    if (userIdFromToken !== userIdFromParams) {
+
+    const tokenUserId = String(userIdFromToken);
+    const paramUserId = String(userIdFromParams);
+    
+    const isAdmin = request.user?.roleId?.toLowerCase() === 'admin';
+    
+    if (tokenUserId !== paramUserId && !isAdmin) {
         return response.status(403).json({
             ok: false,
-            message: 'You do not have permission to access this user resource'
+            message: 'You do not have permission to access this user resource',
+            debug: {
+                userIdFromToken: tokenUserId,
+                userIdFromParams: paramUserId,
+                userFromToken: request.user,
+                isAdmin: isAdmin
+            }
         });
     }
 

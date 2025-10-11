@@ -23,7 +23,7 @@ export interface  IShippingAddress {
 export interface IPreorder {
     _id?: string;
     userId: string;
-    products: IPreorderProduct[]; // Usar el nuevo tipo aquí
+    products: IPreorderProduct[]; 
     shippingAddress: IShippingAddress;
     paymentMethod: string;
     shippingCost: number;

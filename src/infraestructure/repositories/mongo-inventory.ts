@@ -12,8 +12,9 @@ export class MongoInventoryRepository implements IInventoryRepository {
 
     if (data.price !== undefined) inventory.price = data.price;
     if (data.stock !== undefined) inventory.stock = data.stock;
+    if (data.reservedStock !== undefined) inventory.reservedStock = data.reservedStock;
 
-    await inventory.save();
+    await inventory.save(); 
 
     return {
       id: inventory._id.toString(),

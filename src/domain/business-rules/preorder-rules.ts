@@ -32,3 +32,5 @@ export function validateshippingAddress(shippingAddress: IShippingAddress) {
 export function isFreeShipping(totalProducts: number): boolean {
     return totalProducts >= 50000;
 }
+
+

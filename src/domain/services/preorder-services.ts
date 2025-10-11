@@ -43,3 +43,37 @@ export const savePreOrder = async (preorderRepo: IPreorderRepository, preorderDa
         throw new Error(`[ERROR TO SERVICE] - Error saving preorder: ${error}`);
     }
 }
+
+export const confirmPreOrder = async (preorderRepo: IPreorderRepository, preorderId: string): Promise<Preorder> => {
+    try {
+        // 1. Find the preorder by ID
+        const existingPreorder = await preorderRepo.findById(preorderId);
+        
+        if (!existingPreorder) {
+            throw new Error('Preorder not found');
+        }
+
+        // 2. Validate that the preorder can be confirmed (only PENDING status can be confirmed)
+        if (existingPreorder.status !== PreOrderStatus.PENDING) {
+            throw new Error(`Cannot confirm preorder with status: ${existingPreorder.status}. Only PENDING preorders can be confirmed.`);
+        }
+
+        // 3. Update the preorder status to CONFIRMED
+        const updatedPreorder = new Preorder({
+            ...existingPreorder,
+            status: PreOrderStatus.CONFIRMED,
+            updatedAt: new Date()
+        });
+
+        // 4. Save the updated preorder
+        const result = await preorderRepo.update(preorderId, updatedPreorder);
+        
+        if (!result) {
+            throw new Error('Failed to update preorder');
+        }
+
+        return result;
+    } catch (error) {
+        throw new Error(`[ERROR TO SERVICE] - Error confirming preorder: ${error}`);
+    }
+}

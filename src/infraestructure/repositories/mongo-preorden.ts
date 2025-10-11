@@ -30,4 +30,22 @@ export class MongoPreorderRepository implements IPreorderRepository {
 
         return new Preorder(plainPreorder as IPreorder);
     }
+
+    async update(id: string, preorder: Preorder): Promise<Preorder | null> {
+        const updatedDoc = await PreorderModel.findByIdAndUpdate(
+            id,
+            { ...preorder, updatedAt: new Date() },
+            { new: true }
+        );
+
+        if (!updatedDoc) return null;
+
+        const plainPreorder = updatedDoc.toObject();
+
+        if (plainPreorder._id && typeof plainPreorder._id !== 'string') {
+            plainPreorder._id = String(plainPreorder._id);
+        }
+
+        return new Preorder(plainPreorder as IPreorder);
+    }
 }

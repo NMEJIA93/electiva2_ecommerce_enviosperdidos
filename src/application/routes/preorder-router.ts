@@ -7,11 +7,13 @@ import {
 } from '../middlewares/auth-middleware';
 
 import {
-    createdCheckoutOrder
+    createdCheckoutOrder,
+    confirmPreorder
 } from '../controllers/preorder-controller';
 
 const preOrderRouter: Router = express.Router();
 
-preOrderRouter.post('/user/preorder',usePreOrderValidation, createdCheckoutOrder)
+preOrderRouter.post('/user/preorder', usePreOrderValidation, createdCheckoutOrder);
+preOrderRouter.patch('/preorder/:preorderId/confirm', authenticateToken, confirmPreorder);
 
 export default preOrderRouter;

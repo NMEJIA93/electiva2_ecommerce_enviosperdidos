@@ -1,9 +1,9 @@
-import { IPreorder } from "../models/interfaces/IPreorder";
+import { IPreorder,IPreorderProduct } from "../models/interfaces/IPreorder";
 
 export class Preorder implements IPreorder {
     _id?: string;
     userId: string;
-    products: { productId: string; quantity: number }[];
+    products: IPreorderProduct[];
     shippingAddress: {
         country: string;
         state: string;

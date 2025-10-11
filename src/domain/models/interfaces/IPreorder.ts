@@ -11,19 +11,20 @@ export interface IPreorderProduct {
     categoryId: string;
     categoryName?: string;
 }
-
-export interface IPreorder {
-    _id?: string;
-    userId: string;
-    products: IPreorderProduct[]; // Usar el nuevo tipo aquí
-    shippingAddress: {
+export interface  IShippingAddress {
         country: string;
         state: string;
         city: string;
         neighborhood: string;
         address: string;
         postalCode: string;
-    };
+    }
+
+export interface IPreorder {
+    _id?: string;
+    userId: string;
+    products: IPreorderProduct[]; // Usar el nuevo tipo aquí
+    shippingAddress: IShippingAddress;
     paymentMethod: string;
     shippingCost: number;
     total: number;

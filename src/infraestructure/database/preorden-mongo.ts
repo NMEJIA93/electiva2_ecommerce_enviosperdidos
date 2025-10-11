@@ -1,7 +1,8 @@
+// src/infraestructure/database/preorden-mongo.ts
 import mongoose, { Schema } from "mongoose";
-import { IPreorder } from "../../domain/models/interfaces/IPreorder";
+import { IPreorderDocument } from "../interface/IPreorder-mongo";
 
-const PreorderSchema = new Schema<IPreorder>({
+const PreorderSchema = new Schema<IPreorderDocument>({
     userId: { type: String, required: true },
     products: [{
         productId: { type: String, required: true },
@@ -28,4 +29,4 @@ const PreorderSchema = new Schema<IPreorder>({
     updatedAt: { type: Date, default: Date.now }
 });
 
-export const PreorderModel = mongoose.model<IPreorder>('Preorder', PreorderSchema);
+export const PreorderModel = mongoose.model<IPreorderDocument>('Preorder', PreorderSchema);

@@ -10,11 +10,11 @@ import {
 
 import { MongoOrderRepository } from '../../infraestructure/repositories/mongo-order';
 import { MongoInventoryRepository } from '../../infraestructure/repositories/mongo-inventory';
-import { EmailService } from '../../domain/services/email-services';
+import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
 
 const orderRepo = new MongoOrderRepository();
 const inventoryRepo = new MongoInventoryRepository();
-const emailService = new EmailService();
+const emailService = new NodemailerEmailService();
 
 export const createOrder = async (request: Request, response: Response) => {
     try {

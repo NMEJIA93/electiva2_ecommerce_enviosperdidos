@@ -54,6 +54,13 @@ MONGODB_URI=mongodb+srv://<user>:<password>@<cluster-url>
 DB_NAME=electiva2
 JWT_SECRET=tu_jwt_secreto_32_caracteres
 JWT_EXPIRES_IN=24h
+
+# Email Configuration (Optional - for order confirmations)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS_APP=your-16-char-app-password
+NODE_ENV=development
 ```
 
 ### 4️⃣ Run the server

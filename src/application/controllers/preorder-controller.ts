@@ -5,11 +5,12 @@ import { MongoPreorderRepository } from '../../infraestructure/repositories/mong
 import { MongoInventoryRepository } from '../../infraestructure/repositories/mongo-inventory';
 import { MongoOrderRepository } from '../../infraestructure/repositories/mongo-order';
 import { buildOrderResponse } from '../dtos/order-dtos';
-import { EmailService } from '../../domain/services/email-services';
+import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
 
 const preorderRepo = new MongoPreorderRepository();
 const inventoryRepo = new MongoInventoryRepository();
 const orderRepo = new MongoOrderRepository();
+const emailService = new NodemailerEmailService();
 
 export const createdCheckoutOrder = async (request: Request, response: Response) => {
     try {
@@ -40,7 +41,7 @@ export const createdCheckoutOrder = async (request: Request, response: Response)
 export const confirmPreorder = async (request: Request, response: Response) => {
     try {
         const { preorderId } = request.params;
-        const { emailNotification } = request.body
+        const { emailNotification } = request.body;
 
         if (!preorderId) {
             return response.status(400).json({
@@ -49,23 +50,35 @@ export const confirmPreorder = async (request: Request, response: Response) => {
             });
         }
 
-
         const result = await confirmPreOrder(preorderRepo, preorderId, orderRepo, inventoryRepo);
 
-
-
-        const userEmail = request.body.emailNotification || request.user?.email;
+        // Email sending logic
         let emailSent = false;
-        const emailService = new EmailService();
-        if (emailNotification && userEmail) {
-            emailSent = await emailService.sendOrderConfirmationEmail(result.order, userEmail);
+        let emailError = null;
+        
+        // Get email from request body or user context
+        const userEmail = emailNotification || request.user?.email;
+        
+        if (userEmail) {
+            console.log(`[PREORDER CONTROLLER] - Attempting to send email to: ${userEmail}`);
+            try {
+                emailSent = await emailService.sendOrderConfirmationEmail(result.order, userEmail);
+                console.log(`[PREORDER CONTROLLER] - Email sent status: ${emailSent}`);
+            } catch (error) {
+                console.error(`[PREORDER CONTROLLER] - Error sending email: ${error}`);
+                emailError = (error as Error).message;
+            }
+        } else {
+            console.log('[PREORDER CONTROLLER] - No email provided, skipping email notification');
         }
 
         response.status(200).json({
             ok: true,
             message: 'Preorder confirmed and order created successfully',
             preorder: result.preorder,
-            order: buildOrderResponse(result.order)
+            order: buildOrderResponse(result.order),
+            emailSent,
+            emailError: emailError || undefined
         });
     } catch (error) {
         const errorMessage = (error as Error).message;

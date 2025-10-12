@@ -10,8 +10,6 @@ import {
     validateOrderData
 } from "../business-rules/order-rules";
 
-import { EmailService } from './email-services';
-
 
 export const createOrderFromPreorder = async (orderRepo: IOrderRepository, inventoryRepo: IInventoryRepository, orderData: IOrder): Promise<Order> => {
     try {

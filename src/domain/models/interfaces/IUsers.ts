@@ -22,4 +22,5 @@ export interface IUsers {
     createdAt: Date;
     updatedAt: Date;
     paymentMethodId: string;
+    isEmailVerified: boolean;
 }

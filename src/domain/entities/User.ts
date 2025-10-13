@@ -22,6 +22,7 @@ export class User implements IUsers {
     createdAt: Date;
     updatedAt: Date;
     paymentMethodId: string;
+    isEmailVerified: boolean;
 
     constructor(user: IUsers & { id?: string }) {
         this._id = user._id;
@@ -45,5 +46,6 @@ export class User implements IUsers {
         this.createdAt = user.createdAt;
         this.updatedAt = user.updatedAt;
         this.paymentMethodId = user.paymentMethodId;
+        this.isEmailVerified = user.isEmailVerified;
     }
 }

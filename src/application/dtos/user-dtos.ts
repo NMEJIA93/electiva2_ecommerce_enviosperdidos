@@ -106,3 +106,25 @@ export function buildUserResponse(user: any): UserResponse {
         isEmailVerified: user.isEmailVerified,
     };
 }
+
+export interface VerificationRequest {
+    email: string;
+    code: string;
+}
+
+export interface ResendCodeRequest {
+    email: string;
+}
+
+export function buildVerificationRequest(dto: any): VerificationRequest {
+    return {
+        email: dto.email,
+        code: dto.code
+    };
+}
+
+export function buildResendCodeRequest(dto: any): ResendCodeRequest {
+    return {
+        email: dto.email
+    };
+}

@@ -42,4 +42,29 @@ export class NodemailerEmailService implements IEmailService {
             };
         }
     }
+
+    async sendVerificationCode(userEmail: string, userName: string, code: string): Promise<EmailResult> {
+        try {
+            const info = await transporter.sendMail({
+                from: `"Ecommerce" <${process.env.SMTP_USER}>`,
+                to: userEmail,
+                subject: `Código de verificación para ${userName}`,
+                text: `Tu código de verificación es: ${code}`,
+                html: `<b>Tu código de verificación es:</b><br/>${code}`
+            });
+            
+            console.log(`[EMAIL SERVICE] - Verification code sent successfully. MessageId: ${info.messageId}`);
+            return {
+                success: true,
+                messageId: info.messageId
+            };
+        } catch (error) {
+            console.error(`[EMAIL SERVICE] - Error sending verification code: ${error}`);
+            return {
+                success: false,
+                error: (error as Error).message
+            };
+        }
+    }
+    
 }

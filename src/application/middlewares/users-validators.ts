@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserStatus } from '../dtos/user-dtos';
+import { isValidVerificationCode } from '../../domain/business-rules/user-rules';
 
 
 export const useParamValidation = (request: Request, response: Response, next: NextFunction) => {
@@ -23,15 +24,15 @@ export const useParamValidation = (request: Request, response: Response, next: N
         postalCode
     } = request.body;
 
-        const allowedStatus = Object.values(UserStatus);
-        if (!status) {
-            request.body.status = UserStatus.ACTIVE;
-        } else if (!allowedStatus.includes(status)) {
-            return response.status(422).json({
-                ok: false,
-                error: `The status field must be one of: ${allowedStatus.join(', ')}`
-            });
-        }
+    const allowedStatus = Object.values(UserStatus);
+    if (!status) {
+        request.body.status = UserStatus.ACTIVE;
+    } else if (!allowedStatus.includes(status)) {
+        return response.status(422).json({
+            ok: false,
+            error: `The status field must be one of: ${allowedStatus.join(', ')}`
+        });
+    }
     // email
     if (!email) return response.status(422).json({ ok: false, error: 'The email field is required' });
     const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
@@ -50,35 +51,67 @@ export const useParamValidation = (request: Request, response: Response, next: N
     if (!idType) return response.status(422).json({ ok: false, error: 'The idType field is required' });
     if (!idNumber) return response.status(422).json({ ok: false, error: 'The idNumber field is required' });
 
-    /*
-    // gender
-    if (!gender) return response.status(422).json({ ok: false, error: 'The gender field is required' });
 
-    // birthDate
-    const birthDateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!birthDate || !birthDateRegex.test(birthDate)) return response.status(422).json({ ok: false, error: 'The birthDate field is required and must have format YYYY-MM-DD' });
-    const birth = new Date(birthDate);
-    const now = new Date();
-    if (birth >= now) return response.status(422).json({ ok: false, error: 'The birth date must be a date in the past' });
+    next();
+};
 
-    // phone
-    if (!phone) return response.status(422).json({ ok: false, error: 'The phone field is required' });
-    const phoneStr = String(phone);
-    const phoneRegex = /^3\d{9}$/;
-    if (!phoneRegex.test(phoneStr)) return response.status(422).json({ ok: false, error: 'The phone must follow Colombian format (10 digits, starting with 3)' });
+export const validateEmailVerification = (req: Request, res: Response, next: NextFunction) => {
+    const { email, code } = req.body;
 
-    // roleId & status
-    if (!roleId) return response.status(422).json({ ok: false, error: 'The roleId field is required' });
-    if (!status) return response.status(422).json({ ok: false, error: 'The status field is required' });
+    if (!email) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Email is required'
+        });
+    }
 
-    // address parts
-    if (!country) return response.status(422).json({ ok: false, error: 'The country field is required' });
-    if (!state) return response.status(422).json({ ok: false, error: 'The state field is required' });
-    if (!city) return response.status(422).json({ ok: false, error: 'The city field is required' });
-    if (!neighborhood) return response.status(422).json({ ok: false, error: 'The neighborhood field is required' });
-    if (!address) return response.status(422).json({ ok: false, error: 'The address field is required' });
-    if (!postalCode) return response.status(422).json({ ok: false, error: 'The postalCode field is required' });
+    if (!code) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Verification code is required'
+        });
+    }
 
-    */
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Invalid email format'
+        });
+    }
+
+    // Validate code format using business rule
+    if (!isValidVerificationCode(code)) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Invalid code format. Code must be 6 digits'
+        });
+    }
+
+    next();
+};
+
+/**
+ * Validate resend code request
+ */
+export const validateResendCode = (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Email is required'
+        });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Invalid email format'
+        });
+    }
+
     next();
 };

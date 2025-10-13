@@ -4,8 +4,7 @@ import express, {Application, Request, Response} from 'express';
 import appRouter from './application/routes/app-router'
 import { dbConnection } from './infraestructure/config/config-db-mongo';
 import { JWTConfig } from './infraestructure/config/jwt-config';
-
-
+import { MongoUserRepository } from './infraestructure/repositories/mongo-user';
 
 
 const PORT:number = Number(process.env.PORT);
@@ -15,6 +14,10 @@ JWTConfig.validateConfig();
 
 // DB CONNECTION
 dbConnection();
+
+
+MongoUserRepository.initialize();
+console.log('[APP] User repository initialized with verification code cleanup');
 
 const app:Application = express();
 

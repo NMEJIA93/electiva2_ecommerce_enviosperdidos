@@ -55,3 +55,81 @@ export function authorizeProfileAccess(request: Request, response: Response, nex
     }
     next();
 }
+
+export function authorizeUserAccess(request: Request, response: Response, next: NextFunction) {
+    const userIdFromToken = request.user?.id;
+    const userIdFromParams = request.params.userId;
+
+
+    if (!userIdFromToken) {
+        return response.status(401).json({
+            ok: false,
+            message: 'User authentication required'
+        });
+    }
+
+    if (!userIdFromParams) {
+        return response.status(400).json({
+            ok: false,
+            message: 'User ID is required'
+        });
+    }
+
+
+    const tokenUserId = String(userIdFromToken);
+    const paramUserId = String(userIdFromParams);
+    
+    const isAdmin = request.user?.roleId?.toLowerCase() === 'admin';
+    
+    if (tokenUserId !== paramUserId && !isAdmin) {
+        return response.status(403).json({
+            ok: false,
+            message: 'You do not have permission to access this user resource',
+            debug: {
+                userIdFromToken: tokenUserId,
+                userIdFromParams: paramUserId,
+                userFromToken: request.user,
+                isAdmin: isAdmin
+            }
+        });
+    }
+
+    next();
+}
+
+export function authorizePreorderConfirmation(request: Request, response: Response, next: NextFunction) {
+    const userIdFromToken = request.user?.id;
+    const userIdFromParams = request.params.userId;
+    const preorderId = request.params.preorderId;
+
+    if (!userIdFromToken) {
+        return response.status(401).json({
+            ok: false,
+            message: 'User authentication required'
+        });
+    }
+
+    if (!userIdFromParams) {
+        return response.status(400).json({
+            ok: false,
+            message: 'User ID is required'
+        });
+    }
+
+    if (!preorderId) {
+        return response.status(400).json({
+            ok: false,
+            message: 'Preorder ID is required'
+        });
+    }
+
+    // Validate that the user from token matches the user from params
+    if (userIdFromToken !== userIdFromParams) {
+        return response.status(403).json({
+            ok: false,
+            message: 'You do not have permission to confirm preorders for this user'
+        });
+    }
+
+    next();
+}

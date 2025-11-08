@@ -27,6 +27,7 @@ export interface UserRequest {
     createdAt?: Date;
     updatedAt?: Date;
     paymentMethodId?: string;
+    isEmailVerified?: boolean;
 }
 
 
@@ -52,6 +53,7 @@ export function buildUserRequest(dto: UserRequest): IUsers {
         createdAt: dto.createdAt,
         updatedAt: dto.updatedAt,
         paymentMethodId: dto.paymentMethodId,
+        isEmailVerified: dto.isEmailVerified,
     };
 }
 
@@ -76,7 +78,7 @@ export interface UserResponse {
     postalCode?: string;
     createdAt?: Date;
     updatedAt?: Date;
-    // No password!
+    isEmailVerified?: boolean;
 }
 
 
@@ -100,6 +102,29 @@ export function buildUserResponse(user: any): UserResponse {
         address: user.address,
         postalCode: user.postalCode,
         createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        updatedAt: user.updatedAt,
+        isEmailVerified: user.isEmailVerified,
+    };
+}
+
+export interface VerificationRequest {
+    email: string;
+    code: string;
+}
+
+export interface ResendCodeRequest {
+    email: string;
+}
+
+export function buildVerificationRequest(dto: any): VerificationRequest {
+    return {
+        email: dto.email,
+        code: dto.code
+    };
+}
+
+export function buildResendCodeRequest(dto: any): ResendCodeRequest {
+    return {
+        email: dto.email
     };
 }

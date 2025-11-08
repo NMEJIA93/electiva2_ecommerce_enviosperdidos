@@ -1,15 +1,18 @@
 import { Router, Request, Response } from 'express';
 import userRouter from './users-route';
 import authRouter from './auth-route';
+import trackingRouter from './tracking-route';
 import productRouter from './product-route';
 import inventoryRouter from './inventory-route';
-
-// Swagger UI setup
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
 import providerRouter from './provider-route';
 import categoryRouter from './categories-route';
+import preorderRouter from './preorder-router';
+import orderRouter from './order-route'; 
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 import catalogRouter from './catalog-route';
+import { Preorder } from '../../domain/entities/Preorder';
+
 const swaggerDocument = YAML.load('./swagger.yaml');
 
 const appRouter: Router = Router();
@@ -21,7 +24,6 @@ appRouter.get('/', (request: Request, response: Response) => {
     });
 });
 
-// Swagger docs at /api/v1/api-docs
 appRouter.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 appRouter.use('/api/v1', userRouter);

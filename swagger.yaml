@@ -22,13 +22,20 @@ tags:
     description: Inventory and stock management
   - name: Catalog
     description: Product catalog (authenticated users)
+  - name: Product
+    description: Product catalog
+  - name: Preorder
+    description: Checkout and preorders
+  - name: Order
+    description: Orders
 
 paths:
   /api/v1/auth/login:
     post:
-      tags:
-        - Auth
+      tags: [Auth]
       summary: Authenticate a user and generate an access token
+      description: |
+        In addition to authenticating the user and generating a token, this endpoint now tracks login attempts and stores the user's email in the login attempts table for auditing purposes. After 3 failed login attempts, the user will be blocked and unable to log in.
       requestBody:
         required: true
         content:
@@ -63,8 +70,7 @@ paths:
 
   /api/v1/auth/register:
     post:
-      tags:
-        - Auth
+      tags: [Auth]
       summary: Register a new user
       requestBody:
         required: true
@@ -100,8 +106,7 @@ paths:
 
   /api/v1/user:
     post:
-      tags:
-        - User
+      tags: [User]
       summary: Create a new user
       requestBody:
         required: true
@@ -121,25 +126,161 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  error:
-                    type: string
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/product:
+    get:
+      tags: [Product]
+      summary: List all active products with stock > 0
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductResponse'
+    post:
+      tags: [Product]
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/user/{userId}/preorder:
+    post:
+      tags: [Preorder]
+      summary: Create a new preorder (checkout)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreOrderRequest'
+      responses:
+        '201':
+          description: Preorder created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreOrderResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/user/{userId}/preorder/{preorderId}/confirm:
+    patch:
+      tags: [Preorder]
+      summary: Confirm a preorder and create an order
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: preorderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emailNotification:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Preorder confirmed and order created
+          content:
+            application/json:
+              schema:
                 type: object
                 properties:
-                  ok:
-                    type: boolean
-                  message:
-                    type: string
-                  error:
-                    type: string
+                  preorder:
+                    $ref: '#/components/schemas/PreOrderResponse'
+                  order:
+                    $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid preorder status or insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Preorder not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/user/{userId}:
+    get:
+      tags: [Order]
+      summary: Get all orders for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/admin/product:
     post:
@@ -989,53 +1130,37 @@ components:
   schemas:
     LoginRequest:
       type: object
-      required:
-        - Email
-        - Password
+      required: [email, password]
       properties:
-        Email:
+        email:
           type: string
           format: email
-          example: "envios@perdidos.com"
-        Password:
+        password:
           type: string
           minLength: 8
-          example: "ExamplePassword123!"
 
     RegisterRequest:
       type: object
-      required:
-        - Email
-        - Password
-        - Name
-        - Phone
+      required: [email, password, name, phone]
       properties:
-        Email:
+        email:
           type: string
           format: email
-          example: "envios@perdidos.com"
-        Password:
+        password:
           type: string
           minLength: 8
-          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
-          example: "ExamplePassword123!"
-        Name:
+        name:
           type: string
-          minLength: 2
-          example: "Norbey Mejia"
-        Phone:
-          type: number
-          example: 3164624691
+        phone:
+          type: string
 
     AuthResponse:
       type: object
       properties:
         msg:
           type: string
-          example: "Token generated"
         token:
           type: string
-          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         user:
           type: object
           properties:
@@ -1053,10 +1178,8 @@ components:
       properties:
         type:
           type: string
-          example: "Unauthorized"
         msg:
           type: string
-          example: "Invalid credentials (wrong email or password)"
 
     UserRequest:
       type: object
@@ -1068,8 +1191,6 @@ components:
         - idType
         - idNumber
         - roleId
-        - gender
-        - birthDate
         - status
         - country
         - state
@@ -1077,54 +1198,64 @@ components:
         - neighborhood
         - address
         - postalCode
-        - createdAt
-        - updatedAt
       properties:
         email:
           type: string
           format: email
+          description: Correo electrónico único del usuario
+          example: usuario@correo.com
         password:
           type: string
+          description: Contraseña segura (mínimo 8 caracteres, mayúsculas, minúsculas y números)
+          example: Prueba123
         firstName:
           type: string
+          description: Nombre del usuario
+          example: Juan
         lastName:
           type: string
+          description: Apellido del usuario
+          example: Pérez
         idType:
           type: string
+          description: Tipo de documento (cc, ti, etc)
+          example: cc
         idNumber:
           type: string
+          description: Número de documento
+          example: 123456789
         phone:
           type: string
+          description: Teléfono del usuario
+          example: 3161234567
         roleId:
           type: string
-        gender:
-          type: string
-        birthDate:
-          type: string
-          format: date
+          description: Rol del usuario
+          enum: [USER, ADMIN]
+          example: USER
         status:
           type: string
+          description: Estado del usuario
           enum: [ACTIVE, INACTIVE, BLOCKED]
+          example: ACTIVE
         country:
           type: string
+          example: Colombia
         state:
           type: string
+          example: Antioquia
         city:
           type: string
+          example: Medellín
         neighborhood:
           type: string
+          example: Laureles
         address:
           type: string
+          example: Calle 50 #70-30
         postalCode:
           type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        paymentMethodId:
-          type: string
+          example: 050001
 
     UserResponse:
       type: object
@@ -1145,14 +1276,8 @@ components:
           type: string
         roleId:
           type: string
-        gender:
-          type: string
-        birthDate:
-          type: string
-          format: date
         status:
           type: string
-          enum: [ACTIVE, INACTIVE, BLOCKED]
         country:
           type: string
         state:
@@ -1165,9 +1290,187 @@ components:
           type: string
         postalCode:
           type: string
+
+    ProductRequest:
+      type: object
+      required:
+        - name
+        - description
+        - cost
+        - categoryId
+        - images
+        - providers
+      properties:
+        name:
+          type: string
+          description: Nombre del producto
+          example: Camiseta
+        description:
+          type: string
+          description: Descripción del producto
+          example: Camiseta de algodón talla M
+        cost:
+          type: number
+          description: Precio del producto
+          example: 35000
+        categoryId:
+          type: string
+          description: ID de la categoría
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        images:
+          type: array
+          description: Imágenes del producto (mínimo una)
+          items:
+            type: string
+            example: https://miapp.com/img/camiseta.jpg
+        providers:
+          type: array
+          description: IDs de proveedores
+          items:
+            type: string
+            example: 60f1c2e2b2e4b2e4b2e4b2e4
+
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: number
+        categoryId:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        providers:
+          type: array
+          items:
+            type: string
+
+    PreOrderRequest:
+      type: object
+      required:
+        - userId
+        - products
+        - shippingAddress
+        - paymentMethod
+      properties:
+        userId:
+          type: string
+          description: ID del usuario
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        products:
+          type: array
+          description: Productos en la preorden
+          items:
+            $ref: '#/components/schemas/PreOrderProduct'
+        shippingAddress:
+          $ref: '#/components/schemas/PreOrderShippingAddress'
+        paymentMethod:
+          type: string
+          description: Método de pago
+          example: tarjeta
+
+    PreOrderProduct:
+      type: object
+      required:
+        - productId
+        - name
+        - quantity
+        - price
+        - categoryId
+      properties:
+        productId:
+          type: string
+          description: ID del producto
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        name:
+          type: string
+          description: Nombre del producto
+          example: Camiseta
+        description:
+          type: string
+          description: Descripción del producto
+          example: Camiseta de algodón talla M
+        quantity:
+          type: integer
+          description: Cantidad solicitada
+          example: 2
+        price:
+          type: number
+          description: Precio unitario
+          example: 35000
+        categoryId:
+          type: string
+          description: ID de la categoría
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+
+    PreOrderShippingAddress:
+      type: object
+      required:
+        - country
+        - state
+        - city
+        - neighborhood
+        - address
+        - postalCode
+      properties:
+        country:
+          type: string
+          example: Colombia
+        state:
+          type: string
+          example: Antioquia
+        city:
+          type: string
+          example: Medellín
+        neighborhood:
+          type: string
+          example: Laureles
+        address:
+          type: string
+          example: Calle 50 #70-30
+        postalCode:
+          type: string
+          example: 050001
+
+    PreOrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        userId:
+          type: string
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreOrderProduct'
+        shippingAddress:
+          $ref: '#/components/schemas/PreOrderShippingAddress'
+        paymentMethod:
+          type: string
+          example: tarjeta
+        shippingCost:
+          type: number
+          example: 10000
+        total:
+          type: number
+          example: 80000
+        status:
+          type: string
+          enum: [PENDING, EXPIRED, CANCELLED, CONFIRMED]
+          example: PENDING
         createdAt:
           type: string
           format: date-time
+          example: "2024-06-10T12:00:00Z"
         updatedAt:
           type: string
           format: date-time
@@ -1231,50 +1534,6 @@ components:
           description: Indicates if product is discontinued
           example: false
 
-    ProductRequest:
-      type: object
-      required:
-        - name
-        - description
-        - cost
-        - categoryId
-        - providers
-      properties:
-        name:
-          type: string
-          minLength: 3
-          maxLength: 50
-          example: "Laptop Dell Inspiron"
-        description:
-          type: string
-          minLength: 10
-          maxLength: 500
-          example: "High performance laptop with Intel i7 processor"
-        cost:
-          type: number
-          minimum: 0
-          example: 1200.50
-        stock:
-          type: number
-          minimum: 0
-          example: 50
-        categoryId:
-          type: string
-          example: "507f1f77bcf86cd799439012"
-        images:
-          type: array
-          items:
-            type: string
-          example: ["https://example.com/image1.jpg"]
-        providers:
-          type: array
-          items:
-            type: string
-          example: ["507f1f77bcf86cd799439013"]
-        isDiscontinued:
-          type: boolean
-          example: false
-
     ProductUpdateRequest:
       type: object
       description: All fields are optional for updates
@@ -1336,15 +1595,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Product'
-
-    ProductResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: true
-        product:
-          $ref: '#/components/schemas/Product'
 
     DeleteResponse:
       type: object
@@ -1631,3 +1881,54 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CatalogItem'
+          example: "2024-06-10T12:00:00Z"
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        orderNumber:
+          type: string
+          example: ORD-20240610-ABCDE
+        preorderId:
+          type: string
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        userId:
+          type: string
+          example: 60f1c2e2b2e4b2e4b2e4b2e4
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreOrderProduct'
+        shippingAddress:
+          $ref: '#/components/schemas/PreOrderShippingAddress'
+        paymentMethod:
+          type: string
+          example: tarjeta
+        shippingCost:
+          type: number
+          example: 10000
+        total:
+          type: number
+          example: 80000
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+          example: PENDING
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-10T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-10T12:00:00Z"
+        confirmedAt:
+          type: string
+          format: date-time
+          example: "2024-06-10T12:05:00Z"
+        emailSent:
+          type: boolean
+          example: true

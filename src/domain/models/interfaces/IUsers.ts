@@ -11,7 +11,7 @@ export interface IUsers {
     phone: string;
     roleId: string;
     gender: string;
-    birthDate: string; // o Date si prefieres manejarlo como objeto Date
+    birthDate: string; 
     status: UserStatus;
     country: string;
     state: string;
@@ -22,4 +22,5 @@ export interface IUsers {
     createdAt: Date;
     updatedAt: Date;
     paymentMethodId: string;
+    isEmailVerified: boolean;
 }

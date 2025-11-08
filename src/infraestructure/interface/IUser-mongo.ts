@@ -22,4 +22,5 @@ export interface IUserDocument extends Document {
     createdAt: Date;
     updatedAt: Date;
     paymentMethodId: string;
+    isEmailVerified: boolean;
 }

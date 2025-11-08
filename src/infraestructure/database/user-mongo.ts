@@ -11,8 +11,8 @@ const UserSchema: Schema = new Schema({
     idNumber: { type: String, required: true },
     phone: { type: String, required: false },
     roleId: { type: String, required: true },
-    gender: { type: String }, // que no sea obligatorio
-    birthDate: { type: String}, // O type: Date si prefieres
+    gender: { type: String }, 
+    birthDate: { type: String}, 
     status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'BLOCKED'], required: true },
     country: { type: String},
     state: { type: String},
@@ -22,7 +22,8 @@ const UserSchema: Schema = new Schema({
     postalCode: { type: String},
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
-    paymentMethodId: { type: String}
+    paymentMethodId: { type: String},
+    isEmailVerified: { type: Boolean, default: false }
 });
 
 export const UserModel = mongoose.model<IUserDocument>('User', UserSchema);

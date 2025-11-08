@@ -13,8 +13,9 @@ export class MongoInventoryRepository implements IInventoryRepository {
 
     if (data.price !== undefined) inventory.price = data.price;
     if (data.stock !== undefined) inventory.stock = data.stock;
+    if (data.reservedStock !== undefined) inventory.reservedStock = data.reservedStock;
 
-    await inventory.save();
+    await inventory.save(); 
 
     return {
       id: inventory._id.toString(),
@@ -128,4 +129,17 @@ export class MongoInventoryRepository implements IInventoryRepository {
     updatedAt: product.updatedAt,
   } as unknown as Inventory;
 }
+  async getInventoryByProductId(productId: string): Promise<Inventory> {
+        const inventory = await InventoryModel.findOne({ productId }).exec();
+        if (!inventory) {
+            throw new Error("Inventory record not found for this product");
+        }
+        return {
+            id: inventory._id.toString(),
+            productId: inventory.productId.toString(),
+            price: inventory.price,
+            stock: inventory.stock,
+            reservedStock: inventory.reservedStock,
+        } as Inventory;
+    }
 }

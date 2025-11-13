@@ -24,4 +24,5 @@ router.get('/number/:orderNumber', getOrderByNumberController);
 
 router.get('/user/:userId', getUserOrdersController);
 
+router.patch('/user/:userId/order/:orderId/cancel', cancelOrderController);
 export default router;

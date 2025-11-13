@@ -7,7 +7,9 @@ import {
     generateOrderNumber,
     validateOrderStock,
     deductInventoryStock,
-    validateOrderData
+    validateOrderData,
+    cancelOrder as cancelOrderRule,
+    restoreInventoryStock
 } from "../business-rules/order-rules";
 
 
@@ -105,5 +107,18 @@ export const getUserOrders = async (orderRepo: IOrderRepository, userId: string)
         return await orderRepo.findByUserId(userId);
     } catch (error) {
         throw new Error(`[ERROR TO SERVICE] - Error getting user orders: ${error}`);
+    }
+};
+
+export const cancelOrder = async (orderRepo: IOrderRepository, inventoryRepo: IInventoryRepository,orderId: string, userId?: string
+): Promise<Order> => {
+    try {
+        const cancelledOrder = await cancelOrderRule(orderRepo, orderId, userId);
+        
+        await restoreInventoryStock(cancelledOrder.products, inventoryRepo);
+        
+        return cancelledOrder;
+    } catch (error) {
+        throw new Error(`[ERROR TO SERVICE] - Error cancelling order: ${error}`);
     }
 };

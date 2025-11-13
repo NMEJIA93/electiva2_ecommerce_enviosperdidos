@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { TrackingService } from '../../domain/services/tracking-services';
 import { MongoTrackingRepository } from '../../infraestructure/repositories/mongo-tracking';
+import { MongoUserRepository } from '../../infraestructure/repositories/mongo-user';
 import { TrackingStatus } from '../../domain/entities/Tracking';
 import { webSocketServer } from '../../app';
 
 const trackingService = new TrackingService(new MongoTrackingRepository());
+const userRepo = new MongoUserRepository();
 
 export const getTrackingByUser = async (req: Request, res: Response) => {
   try {
@@ -21,8 +23,31 @@ export const createTracking = async (req: Request, res: Response) => {
   try {
     const { orderNumber, userId, userEmail } = req.body;
     const changedBy = req.user?.email || 'System';
-    const emailToStore = userEmail || req.user?.email;
-    const tracking = await trackingService.createTracking({ orderNumber, userId, userEmail: emailToStore }, changedBy);
+    
+    // Create tracking immediately, get email asynchronously
+    const trackingPromise = trackingService.createTracking({ orderNumber, userId, userEmail }, changedBy);
+    
+    // Get user email in parallel if needed
+    let emailPromise = Promise.resolve(userEmail || req.user?.email);
+    if (!userEmail && !req.user?.email && userId) {
+      emailPromise = userRepo.findByIdNumber(userId).then(user => user?.email).catch(() => null);
+    }
+    
+    const [tracking, finalEmail] = await Promise.all([trackingPromise, emailPromise]);
+    
+    // Update email if found and different
+    if (finalEmail && finalEmail !== userEmail && tracking.userEmail !== finalEmail) {
+      // Update asynchronously without waiting
+      setImmediate(async () => {
+        try {
+          const repo = new MongoTrackingRepository();
+          await repo.updateTrackingEmail(tracking.trackingNumber!, finalEmail);
+        } catch (err) {
+          console.error('Error updating tracking email:', err);
+        }
+      });
+    }
+    
     res.status(201).json(tracking);
   } catch (err) {
     res.status(500).json({ error: 'Error creating tracking', details: err });

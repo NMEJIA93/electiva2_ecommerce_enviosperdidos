@@ -79,6 +79,18 @@ export class MongoUserRepository implements IUserRepository {
         return new User(userObject as IUsers);
     }
 
+    async findByIdNumber(idNumber: string): Promise<User | null> {
+        const userDoc = await UserModel.findOne({ idNumber });
+        if (!userDoc) {
+            return null;
+        }
+        const userObject = userDoc.toObject();
+        if (userObject._id && typeof userObject._id !== 'string') {
+            userObject._id = userObject._id.toString();
+        }
+        return new User(userObject as IUsers);
+    }
+
 
 
     async findAll(): Promise<User[]> {

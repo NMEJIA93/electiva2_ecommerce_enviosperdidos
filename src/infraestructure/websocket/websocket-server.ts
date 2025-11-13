@@ -84,8 +84,6 @@ export class WebSocketServer {
                         status: nextStatus,
                         timestamp: new Date()
                     });
-
-                    console.log(`[WEBSOCKET] Auto-updated ${tracking.trackingNumber}: ${tracking.currentStatus} → ${nextStatus}`);
                 }
             }
         } catch (error) {

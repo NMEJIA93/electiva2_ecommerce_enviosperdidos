@@ -4,7 +4,8 @@ import {
     confirmOrderController, 
     getOrderByIdController, 
     getOrderByNumberController, 
-    getUserOrdersController 
+    getUserOrdersController,
+    cancelOrderController 
 } from '../controllers/order-controller';
 import { authenticateToken } from '../middlewares/auth-middleware';
 

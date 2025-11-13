@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { TrackingService } from '../../domain/services/tracking-services';
 import { MongoTrackingRepository } from '../../infraestructure/repositories/mongo-tracking';
+import { TrackingStatus } from '../../domain/entities/Tracking';
+import { webSocketServer } from '../../app';
 
 const trackingService = new TrackingService(new MongoTrackingRepository());
 
@@ -43,9 +45,23 @@ export const updateTrackingStatus = async (req: Request, res: Response) => {
   try {
     const { trackingNumber, status } = req.body;
     const changedBy = req.user?.email || 'System';
-    const updated = await trackingService.updateStatus({ trackingNumber, status }, changedBy);
+    
+    // Use WebSocket server for manual updates to emit real-time notifications
+    const updated = await webSocketServer.manualStatusUpdate(trackingNumber, status as TrackingStatus, changedBy);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: 'Error updating status', details: err });
+  }
+};
+
+export const cancelTracking = async (req: Request, res: Response) => {
+  try {
+    const { trackingNumber } = req.body;
+    const changedBy = req.user?.email || 'System';
+    
+    const updated = await webSocketServer.manualStatusUpdate(trackingNumber, TrackingStatus.CANCELADO, changedBy);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Error canceling tracking', details: err });
   }
 };

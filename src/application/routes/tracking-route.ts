@@ -17,4 +17,8 @@ router.get('/tracking/user/:userId', getTrackingByUser);
 // Actualizar estado del tracking (requiere autenticación)
 router.put('/tracking/status', authenticateToken, updateTrackingStatus);
 
+// Cancelar tracking (admin o usuario propietario)
+import { cancelTracking } from '../controllers/tracking-controller';
+router.put('/tracking/cancel', authenticateToken, cancelTracking);
+
 export default router;

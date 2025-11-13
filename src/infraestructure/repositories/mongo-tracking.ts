@@ -56,6 +56,11 @@
       return found.map(doc => doc.toObject());
     }
 
+    async findTrackingsByStatus(statuses: TrackingStatus[]): Promise<ITracking[]> {
+      const found = await TrackingModel.find({ currentStatus: { $in: statuses } });
+      return found.map(doc => doc.toObject());
+    }
+
     // Devuelve una lista de { trackingNumber, userEmail, notification } para notificaciones pendientes
     async findPendingNotifications(maxRetries: number): Promise<Array<{ trackingNumber: string; userEmail?: string; notification: any }>> {
       // Proyección para filtrar documentos con notificaciones pendientes

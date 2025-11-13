@@ -6,4 +6,6 @@ export interface ITrackingRepository {
   getTrackingByOrderNumber(orderNumber: string): Promise<ITracking | null>;
   updateTrackingStatus(trackingNumber: string, status: TrackingStatus, changedBy?: string): Promise<ITracking>;
   addNotification(trackingNumber: string, notification: any): Promise<void>;
+  findTrackingsByUser(userId: string): Promise<ITracking[]>;
+  findTrackingsByStatus(statuses: TrackingStatus[]): Promise<ITracking[]>;
 }

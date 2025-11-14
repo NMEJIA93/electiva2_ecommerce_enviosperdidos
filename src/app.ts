@@ -1,11 +1,13 @@
 import 'dotenv/config'
 import express, {Application, Request, Response} from 'express';
+import { createServer } from 'http';
 
 import appRouter from './application/routes/app-router'
 import { dbConnection } from './infraestructure/config/config-db-mongo';
 import { JWTConfig } from './infraestructure/config/jwt-config';
 import { MongoUserRepository } from './infraestructure/repositories/mongo-user';
 import { startNotificationRetryJob } from './infraestructure/jobs/notification-retry-job';
+import { WebSocketServer } from './infraestructure/websocket/websocket-server';
 import './infraestructure/observers';
 import './infraestructure/cron/inventoryCleanup'
 
@@ -24,12 +26,10 @@ console.log('[APP] User repository initialized with verification code cleanup');
 startNotificationRetryJob();
 
 const app:Application = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket server
+export const webSocketServer = new WebSocketServer(httpServer);
 
 app.use(express.json());
-
 app.use(appRouter);
-
-app.listen(PORT, ()=>{
-    console.log(`[APP] Server running on port ${PORT}`);
-    console.log(`[APP] Server URL: http://localhost:${PORT}`);
-})

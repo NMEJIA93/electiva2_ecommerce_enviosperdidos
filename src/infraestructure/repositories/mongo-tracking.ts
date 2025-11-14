@@ -56,6 +56,7 @@
       return found.map(doc => doc.toObject());
     }
 
+
     async findAll(): Promise<ITracking[]> {
       try {
         const found = await TrackingModel.find();
@@ -63,6 +64,17 @@
       } catch (error) {
         throw new Error(`[ERROR TO REPOSITORY] - Error finding all trackings: ${error}`);
       }
+
+    async findTrackingsByStatus(statuses: TrackingStatus[]): Promise<ITracking[]> {
+      const found = await TrackingModel.find({ currentStatus: { $in: statuses } });
+      return found.map(doc => doc.toObject());
+    }
+
+    async updateTrackingEmail(trackingNumber: string, userEmail: string): Promise<void> {
+      await TrackingModel.findOneAndUpdate(
+        { trackingNumber },
+        { $set: { userEmail } }
+      );
     }
 
     // Devuelve una lista de { trackingNumber, userEmail, notification } para notificaciones pendientes

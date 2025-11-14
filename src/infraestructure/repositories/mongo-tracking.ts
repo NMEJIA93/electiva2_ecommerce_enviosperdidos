@@ -64,6 +64,7 @@
       } catch (error) {
         throw new Error(`[ERROR TO REPOSITORY] - Error finding all trackings: ${error}`);
       }
+    }
 
     async findTrackingsByStatus(statuses: TrackingStatus[]): Promise<ITracking[]> {
       const found = await TrackingModel.find({ currentStatus: { $in: statuses } });

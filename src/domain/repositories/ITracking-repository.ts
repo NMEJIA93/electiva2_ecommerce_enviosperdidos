@@ -9,5 +9,5 @@ export interface ITrackingRepository {
   findAll(): Promise<ITracking[]>;
   findTrackingsByUser(userId: string): Promise<ITracking[]>;
   findTrackingsByStatus(statuses: TrackingStatus[]): Promise<ITracking[]>;
-
+  updateTrackingEmail(trackingNumber: string, userEmail: string): Promise<void>;
 }

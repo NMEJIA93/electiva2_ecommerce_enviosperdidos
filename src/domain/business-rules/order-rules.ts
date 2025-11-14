@@ -1,6 +1,7 @@
 import { IOrderRepository } from "../repositories/IOrder-repository";
 import { IInventoryRepository } from "../repositories/IInventory-repository";
-import { IOrderProduct } from "../models/interfaces/IOrder";
+import { IOrderProduct, OrderStatus } from "../models/interfaces/IOrder";
+import { Order } from "../entities/Order";
 
 export const generateOrderNumber = async (orderRepo: IOrderRepository): Promise<string> => {
     const now = new Date();
@@ -90,5 +91,71 @@ export const validateOrderData = (orderData: any): void => {
 
     if (orderData.total <= 0) {
         throw new Error('Order total must be greater than zero');
+    }
+};
+
+
+export const cancelOrder = async (orderRepo: IOrderRepository, orderId: string, userId?: string): Promise<Order> => {
+
+    const order = await orderRepo.findById(orderId);
+    
+    if (!order) {
+        throw new Error('Order not found');
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+        throw new Error(`Cannot cancel order with status: ${order.status}. Only PENDING orders can be cancelled.`);
+    }
+
+    if (userId && order.userId !== userId) {
+        throw new Error('User ID does not match the order owner');
+    }
+
+    const now = new Date();
+    const orderCreatedAt = new Date(order.createdAt);
+    const hoursSinceCreation = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+    
+    const orderUpdatedAt = new Date(order.updatedAt);
+    const hoursSinceUpdate = (now.getTime() - orderUpdatedAt.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceUpdate > 48) {
+         throw new Error('Order cannot be cancelled because it has been updated more than 48 hours ago');
+    } else if (!userId) {
+        throw new Error('User ID is required to cancel the order');
+    }
+
+    const cancelledOrder = new Order({
+        ...order,
+        status: OrderStatus.CANCELLED,
+        updatedAt: new Date()
+    });
+
+    const result = await orderRepo.update(orderId, cancelledOrder);
+    
+    if (!result) {
+        throw new Error('Failed to cancel order');
+    }
+
+    return result;
+};
+
+export const restoreInventoryStock = async (
+    products: IOrderProduct[],
+    inventoryRepo: IInventoryRepository
+): Promise<void> => {
+    for (const product of products) {
+        const inventory = await inventoryRepo.getInventoryByProductId(product.productId);
+
+        if (!inventory) {
+            throw new Error(`Product ${product.productId} not found in inventory`);
+        }
+
+        const updatedInventory = {
+            ...inventory,
+            stock: inventory.stock + product.quantity,
+            reservedStock: Math.max(inventory.reservedStock - product.quantity, 0)
+        };
+
+        await inventoryRepo.update(product.productId, updatedInventory);
     }
 };

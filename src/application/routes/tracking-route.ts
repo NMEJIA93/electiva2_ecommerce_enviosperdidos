@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createTracking, getTracking, updateTrackingStatus } from '../controllers/tracking-controller';
+import { createTracking, getTracking, updateTrackingStatus, getAllTrackings } from '../controllers/tracking-controller';
 import { authenticateToken } from '../middlewares/auth-middleware';
 
 const router = Router();
@@ -16,5 +16,8 @@ router.get('/tracking/user/:userId', getTrackingByUser);
 
 // Actualizar estado del tracking (requiere autenticación)
 router.put('/tracking/status', authenticateToken, updateTrackingStatus);
+
+// Get all trackings
+router.get('/tracking', getAllTrackings);
 
 export default router;

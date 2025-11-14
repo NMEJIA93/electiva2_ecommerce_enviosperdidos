@@ -49,3 +49,31 @@ export const updateTrackingStatus = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error updating status', details: err });
   }
 };
+
+export const getAllTrackings = async (req: Request, res: Response) => {
+  try {
+    const trackings = await trackingService.getAllTrackings();
+    
+    res.status(200).json({
+      ok: true,
+      trackings: trackings
+    });
+  } catch (error) {
+    console.error('[TRACKING CONTROLLER] Error getting all trackings:', error);
+    const errorMessage = (error as Error).message;
+
+    // 503 Service Unavailable - Database connection issues
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('connection')) {
+      return res.status(503).json({
+        ok: false,
+        message: 'Service temporarily unavailable. Please try again later.'
+      });
+    }
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Internal server error',
+      error: errorMessage
+    });
+  }
+};

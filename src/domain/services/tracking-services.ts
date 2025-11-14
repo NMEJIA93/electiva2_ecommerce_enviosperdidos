@@ -88,4 +88,12 @@ export class TrackingService {
   async addNotification(trackingNumber: string, notification: any) {
     await this.trackingRepo.addNotification(trackingNumber, notification);
   }
+
+  async getAllTrackings() {
+    try {
+      return await this.trackingRepo.findAll();
+    } catch (error) {
+      throw new Error(`[ERROR TO SERVICE] - Error getting all trackings: ${error}`);
+    }
+  }
 }

@@ -56,6 +56,15 @@
       return found.map(doc => doc.toObject());
     }
 
+    async findAll(): Promise<ITracking[]> {
+      try {
+        const found = await TrackingModel.find();
+        return found.map(doc => doc.toObject());
+      } catch (error) {
+        throw new Error(`[ERROR TO REPOSITORY] - Error finding all trackings: ${error}`);
+      }
+    }
+
     // Devuelve una lista de { trackingNumber, userEmail, notification } para notificaciones pendientes
     async findPendingNotifications(maxRetries: number): Promise<Array<{ trackingNumber: string; userEmail?: string; notification: any }>> {
       // Proyección para filtrar documentos con notificaciones pendientes

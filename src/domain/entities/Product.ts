@@ -9,7 +9,7 @@ export class Product implements IProduct {
     id: string;
     providers: string[];
     reservedStock?: number;
-    classification?: string;
+    isDiscontinued?: boolean;
 
     constructor(product: IProduct & { id?: string }) {
         this.id = product.id || '';
@@ -19,7 +19,7 @@ export class Product implements IProduct {
         this.categoryId = product.categoryId;
         this.images = product.images;
         this.providers = product.providers || [];
-        this.classification = product.classification || 'Vigenete';
+        this.isDiscontinued = product.isDiscontinued || false;
     }
 }
     

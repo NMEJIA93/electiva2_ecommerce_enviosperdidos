@@ -4,11 +4,11 @@ import { authenticateToken, authorizeRole } from "../middlewares/auth-middleware
 
 const categoryRouter: Router = express.Router();
 
-categoryRouter.post('/product/categories', authenticateToken, authorizeRole(["admin"]), createCategory);
-categoryRouter.get('/product/categories', authenticateToken, authorizeRole(["admin"]), getCategories);
-categoryRouter.get('/product/categories/:id', authenticateToken, authorizeRole(["admin"]), getCategoryById);
-categoryRouter.put('/product/categories/:id', authenticateToken, authorizeRole(["admin"]), updateCategory );
-categoryRouter.delete('/product/categories/:id', authenticateToken, authorizeRole(["admin"]), deleteCategoryById);
+categoryRouter.post('/admin/product/categories', authenticateToken, authorizeRole(["admin"]), createCategory);
+categoryRouter.get('/admin/product/categories', authenticateToken, authorizeRole(["admin"]), getCategories);
+categoryRouter.get('/admin/product/categories/:id', authenticateToken, authorizeRole(["admin"]), getCategoryById);
+categoryRouter.put('/admin/product/categories/:id', authenticateToken, authorizeRole(["admin"]), updateCategory );
+categoryRouter.delete('/admin/product/categories/:id', authenticateToken, authorizeRole(["admin"]), deleteCategoryById);
 
 
 export default categoryRouter;

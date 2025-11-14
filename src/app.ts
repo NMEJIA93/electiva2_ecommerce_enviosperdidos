@@ -9,6 +9,7 @@ import { MongoUserRepository } from './infraestructure/repositories/mongo-user';
 import { startNotificationRetryJob } from './infraestructure/jobs/notification-retry-job';
 import { WebSocketServer } from './infraestructure/websocket/websocket-server';
 import './infraestructure/observers';
+import './infraestructure/cron/inventoryCleanup'
 
 const PORT:number = Number(process.env.PORT);
 
@@ -32,9 +33,3 @@ export const webSocketServer = new WebSocketServer(httpServer);
 
 app.use(express.json());
 app.use(appRouter);
-
-httpServer.listen(PORT, ()=>{
-    console.log(`Maldito genio el servidor esta corriendo por el puesto ${PORT}`);
-    console.log(`http://localhost:${PORT}`);
-    console.log(`WebSocket server initialized`);
-})

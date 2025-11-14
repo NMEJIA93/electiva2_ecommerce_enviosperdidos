@@ -5,7 +5,8 @@ import {
     confirmOrder,
     getOrderById,
     getOrderByNumber,
-    getUserOrders
+    getUserOrders,
+    cancelOrder
 } from '../../domain/services/order-services';
 
 import { MongoOrderRepository } from '../../infraestructure/repositories/mongo-order';
@@ -197,6 +198,58 @@ export const getUserOrdersController = async (request: Request, response: Respon
             ok: false,
             message: 'Internal server error',
             error: (error as Error).message
+        });
+    }
+};
+
+export const cancelOrderController = async (request: Request, response: Response) => {
+    try {
+        const { userId, orderId } = request.params;
+
+        if (!orderId) {
+            return response.status(400).json({
+                ok: false,
+                message: 'Order ID is required'
+            });
+        }
+
+        if (!userId) {
+            return response.status(400).json({
+                ok: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const result = await cancelOrder(orderRepo, inventoryRepo, orderId, userId);
+
+        response.status(200).json({
+            ok: true,
+            message: 'Order cancelled successfully',
+            order: buildOrderResponse(result)
+        });
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+
+        if (errorMessage.includes('not found')) {
+            return response.status(404).json({
+                ok: false,
+                message: 'Order not found',
+                error: errorMessage
+            });
+        }
+
+        if (errorMessage.includes('Cannot cancel order') || errorMessage.includes('does not match')) {
+            return response.status(400).json({
+                ok: false,
+                message: 'Invalid cancellation request',
+                error: errorMessage
+            });
+        }
+
+        response.status(500).json({
+            ok: false,
+            message: 'Internal server error',
+            error: errorMessage
         });
     }
 };

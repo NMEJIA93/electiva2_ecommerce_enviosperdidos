@@ -4,11 +4,11 @@ import { authenticateToken, authorizeRole } from "../middlewares/auth-middleware
 
 const providerRouter: Router = express.Router();
 
-providerRouter.post('/provider', authenticateToken, authorizeRole(["admin"]), createProvider);
-providerRouter.get('/provider', authenticateToken, authorizeRole(["admin",]), getProviders);
-providerRouter.get('/provider/:id', authenticateToken, authorizeRole(["admin"]), getProviderById)
-providerRouter.put('/provider/:id', authenticateToken, authorizeRole(["admin"]), updateProvider);
-providerRouter.delete('/provider/:id', authenticateToken, authorizeRole(["admin"]), deleteProvider);
+providerRouter.post('/admin/product/provider', authenticateToken, authorizeRole(["admin"]), createProvider);
+providerRouter.get('/admin/product//provider', authenticateToken, authorizeRole(["admin",]), getProviders);
+providerRouter.get('/admin/product/provider/:id', authenticateToken, authorizeRole(["admin"]), getProviderById)
+providerRouter.put('/admin/product/provider/:id', authenticateToken, authorizeRole(["admin"]), updateProvider);
+providerRouter.delete('/admin/product/provider/:id', authenticateToken, authorizeRole(["admin"]), deleteProvider);
 
 
 export default providerRouter;

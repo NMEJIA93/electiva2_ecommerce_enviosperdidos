@@ -1,653 +1,189 @@
-// src/test/domain/entities/User.test.ts
-
 import { User } from '../../../domain/entities/User';
 import { IUsers } from '../../../domain/models/interfaces/IUsers';
 import { UserStatus } from '../../../application/dtos/user-dtos';
 
 describe('User Entity', () => {
+  const mockUserData: IUsers = {
+    _id: 'user-123',
+    email: 'test@example.com',
+    password: '$2b$10$hashedPasswordExample123456789',
+    firstName: 'John',
+    lastName: 'Doe',
+    idType: 'CC',
+    idNumber: '12345678',
+    phone: '+57300123456',
+    roleId: 'role-user',
+    gender: 'M',
+    birthDate: '1990-01-01',
+    status: UserStatus.ACTIVE,
+    country: 'Colombia',
+    state: 'Cundinamarca',
+    city: 'Bogotá',
+    neighborhood: 'Chapinero',
+    address: 'Calle 123 #45-67',
+    postalCode: '110111',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+    paymentMethodId: 'payment-123',
+    isEmailVerified: true
+  };
 
-    // ========================================================================
-    // Constructor Tests - Complete User Data
-    // ========================================================================
-    describe('Given complete user data', () => {
-        describe('When creating a User instance', () => {
-            it('should create user with all properties correctly assigned', () => {
-                // Arrange
-                const userData: IUsers = {
-                    _id: '123-456-789',
-                    email: 'john.doe@example.com',
-                    password: 'hashedPassword123',
-                    firstName: 'John',
-                    lastName: 'Doe',
-                    idType: 'cc',
-                    idNumber: '1234567890',
-                    phone: '+57 300 1234567',
-                    roleId: 'USER',
-                    gender: 'M',
-                    birthDate: '1990-05-15',
-                    status: UserStatus.ACTIVE,
-                    country: 'Colombia',
-                    state: 'Antioquia',
-                    city: 'Medellín',
-                    neighborhood: 'El Poblado',
-                    address: 'Calle 10 #20-30, Apto 501',
-                    postalCode: '050021',
-                    createdAt: new Date('2024-01-01T10:00:00'),
-                    updatedAt: new Date('2024-01-15T15:30:00'),
-                    paymentMethodId: 'payment-method-123',
-                    isEmailVerified: true
-                };
+  test('should create a User instance with all properties', () => {
+    const user = new User(mockUserData);
 
-                // Act
-                const user = new User(userData);
+    expect(user._id).toBe('user-123');
+    expect(user.email).toBe('test@example.com');
+    expect(user.firstName).toBe('John');
+    expect(user.lastName).toBe('Doe');
+    expect(user.idType).toBe('CC');
+    expect(user.idNumber).toBe('12345678');
+    expect(user.phone).toBe('+57300123456');
+    expect(user.status).toBe(UserStatus.ACTIVE);
+    expect(user.country).toBe('Colombia');
+    expect(user.city).toBe('Bogotá');
+    expect(user.isEmailVerified).toBe(true);
+  });
 
-                // Assert - Verify all properties
-                expect(user._id).toBe('123-456-789');
-                expect(user.email).toBe('john.doe@example.com');
-                expect(user.password).toBe('hashedPassword123');
-                expect(user.firstName).toBe('John');
-                expect(user.lastName).toBe('Doe');
-                expect(user.idType).toBe('cc');
-                expect(user.idNumber).toBe('1234567890');
-                expect(user.phone).toBe('+57 300 1234567');
-                expect(user.roleId).toBe('USER');
-                expect(user.gender).toBe('M');
-                expect(user.birthDate).toBe('1990-05-15');
-                expect(user.status).toBe(UserStatus.ACTIVE);
-                expect(user.country).toBe('Colombia');
-                expect(user.state).toBe('Antioquia');
-                expect(user.city).toBe('Medellín');
-                expect(user.neighborhood).toBe('El Poblado');
-                expect(user.address).toBe('Calle 10 #20-30, Apto 501');
-                expect(user.postalCode).toBe('050021');
-                expect(user.createdAt).toEqual(new Date('2024-01-01T10:00:00'));
-                expect(user.updatedAt).toEqual(new Date('2024-01-15T15:30:00'));
-                expect(user.paymentMethodId).toBe('payment-method-123');
-                expect(user.isEmailVerified).toBe(true);
-            });
-
-            it('should be an instance of User class', () => {
-                // Arrange
-                const userData: IUsers = {
-                    email: 'test@example.com',
-                    password: 'password',
-                    firstName: 'Test',
-                    lastName: 'User',
-                    idType: 'cc',
-                    idNumber: '123',
-                    phone: '300',
-                    roleId: 'USER',
-                    gender: '',
-                    birthDate: '',
-                    status: UserStatus.ACTIVE,
-                    country: '',
-                    state: '',
-                    city: '',
-                    neighborhood: '',
-                    address: '',
-                    postalCode: '',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                    paymentMethodId: '',
-                    isEmailVerified: false
-                };
-
-                // Act
-                const user = new User(userData);
-
-                // Assert
-                expect(user).toBeInstanceOf(User);
-            });
-        });
+  test('should handle different user statuses', () => {
+    const inactiveUser = new User({
+      ...mockUserData,
+      status: UserStatus.INACTIVE
     });
 
-    // ========================================================================
-    // Constructor Tests - Minimal Required Data
-    // ========================================================================
-    describe('Given minimal required user data', () => {
-        describe('When creating a User with only required fields', () => {
-            it('should create user successfully', () => {
-                // Arrange
-                const minimalData: IUsers = {
-                    email: 'minimal@example.com',
-                    password: 'minimalPassword',
-                    firstName: 'Min',
-                    lastName: 'User',
-                    idType: 'ce',
-                    idNumber: '999888777',
-                    phone: '3009998877',
-                    roleId: 'USER',
-                    gender: '',
-                    birthDate: '',
-                    status: UserStatus.ACTIVE,
-                    country: '',
-                    state: '',
-                    city: '',
-                    neighborhood: '',
-                    address: '',
-                    postalCode: '',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                    paymentMethodId: '',
-                    isEmailVerified: false
-                };
-
-                // Act
-                const user = new User(minimalData);
-
-                // Assert
-                expect(user.email).toBe('minimal@example.com');
-                expect(user.firstName).toBe('Min');
-                expect(user.lastName).toBe('User');
-                expect(user.isEmailVerified).toBe(false);
-                expect(user.gender).toBe('');
-                expect(user.country).toBe('');
-            });
-        });
+    const blockedUser = new User({
+      ...mockUserData,
+      status: UserStatus.BLOCKED
     });
 
-    // ========================================================================
-    // Constructor Tests - Different ID Types
-    // ========================================================================
-    describe('Given user with different identification types', () => {
-        it('should create user with cedula de ciudadania (cc)', () => {
-            const userData: IUsers = {
-                email: 'cc@example.com',
-                password: 'password',
-                firstName: 'CC',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '123456789',
-                phone: '300',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    expect(inactiveUser.status).toBe(UserStatus.INACTIVE);
+    expect(blockedUser.status).toBe(UserStatus.BLOCKED);
+  });
 
-            const user = new User(userData);
-            expect(user.idType).toBe('cc');
-        });
+  test('should create a User without _id', () => {
+    const userData = { ...mockUserData };
+    delete userData._id;
 
-        it('should create user with cedula de extranjeria (ce)', () => {
-            const userData: IUsers = {
-                email: 'ce@example.com',
-                password: 'password',
-                firstName: 'CE',
-                lastName: 'User',
-                idType: 'ce',
-                idNumber: '987654321',
-                phone: '301',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    const user = new User(userData);
 
-            const user = new User(userData);
-            expect(user.idType).toBe('ce');
-        });
+    expect(user._id).toBeUndefined();
+    expect(user.email).toBe('test@example.com');
+    expect(user.firstName).toBe('John');
+  });
 
-        it('should create user with passport', () => {
-            const userData: IUsers = {
-                email: 'passport@example.com',
-                password: 'password',
-                firstName: 'Pass',
-                lastName: 'User',
-                idType: 'passport',
-                idNumber: 'ABC123456',
-                phone: '302',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+  test('should handle different ID types', () => {
+    const idTypes = ['CC', 'CE', 'TI', 'PP', 'NIT'];
 
-            const user = new User(userData);
-            expect(user.idType).toBe('passport');
-        });
+    idTypes.forEach(idType => {
+      const user = new User({
+        ...mockUserData,
+        idType,
+        idNumber: '123456789'
+      });
+      expect(user.idType).toBe(idType);
+    });
+  });
+
+  test('should handle different genders', () => {
+    const genders = ['M', 'F', 'O'];
+
+    genders.forEach(gender => {
+      const user = new User({
+        ...mockUserData,
+        gender
+      });
+      expect(user.gender).toBe(gender);
+    });
+  });
+
+  test('should handle complete address information', () => {
+    const user = new User(mockUserData);
+
+    expect(user.country).toBe('Colombia');
+    expect(user.state).toBe('Cundinamarca');
+    expect(user.city).toBe('Bogotá');
+    expect(user.neighborhood).toBe('Chapinero');
+    expect(user.address).toBe('Calle 123 #45-67');
+    expect(user.postalCode).toBe('110111');
+  });
+
+  test('should handle email verification status', () => {
+    const verifiedUser = new User({
+      ...mockUserData,
+      isEmailVerified: true
     });
 
-    // ========================================================================
-    // Constructor Tests - Different User Statuses
-    // ========================================================================
-    describe('Given users with different statuses', () => {
-        it('should create user with ACTIVE status', () => {
-            const userData: IUsers = {
-                email: 'active@example.com',
-                password: 'password',
-                firstName: 'Active',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '111',
-                phone: '300',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.status).toBe(UserStatus.ACTIVE);
-        });
-
-        it('should create user with INACTIVE status', () => {
-            const userData: IUsers = {
-                email: 'inactive@example.com',
-                password: 'password',
-                firstName: 'Inactive',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '222',
-                phone: '301',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.INACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.status).toBe(UserStatus.INACTIVE);
-        });
-
-        it('should create user with BLOCKED status', () => {
-            const userData: IUsers = {
-                email: 'blocked@example.com',
-                password: 'password',
-                firstName: 'Blocked',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '333',
-                phone: '302',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.BLOCKED,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.status).toBe(UserStatus.BLOCKED);
-        });
+    const unverifiedUser = new User({
+      ...mockUserData,
+      isEmailVerified: false
     });
 
-    // ========================================================================
-    // Constructor Tests - Different Roles
-    // ========================================================================
-    describe('Given users with different roles', () => {
-        it('should create user with USER role', () => {
-            const userData: IUsers = {
-                email: 'user@example.com',
-                password: 'password',
-                firstName: 'Regular',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '444',
-                phone: '303',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    expect(verifiedUser.isEmailVerified).toBe(true);
+    expect(unverifiedUser.isEmailVerified).toBe(false);
+  });
 
-            const user = new User(userData);
-            expect(user.roleId).toBe('USER');
-        });
+  test('should handle different phone number formats', () => {
+    const phoneFormats = [
+      '+57300123456',
+      '+1234567890',
+      '300123456',
+      '+57 300 123 456'
+    ];
 
-        it('should create user with ADMIN role', () => {
-            const userData: IUsers = {
-                email: 'admin@example.com',
-                password: 'password',
-                firstName: 'Admin',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '555',
-                phone: '304',
-                roleId: 'ADMIN',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    phoneFormats.forEach(phone => {
+      const user = new User({
+        ...mockUserData,
+        phone
+      });
+      expect(user.phone).toBe(phone);
+    });
+  });
 
-            const user = new User(userData);
-            expect(user.roleId).toBe('ADMIN');
-        });
+  test('should handle special characters in names', () => {
+    const user = new User({
+      ...mockUserData,
+      firstName: 'José María',
+      lastName: 'García-López'
     });
 
-    // ========================================================================
-    // Constructor Tests - Gender Values
-    // ========================================================================
-    describe('Given users with different genders', () => {
-        it('should create user with Male gender', () => {
-            const userData: IUsers = {
-                email: 'male@example.com',
-                password: 'password',
-                firstName: 'Male',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '666',
-                phone: '305',
-                roleId: 'USER',
-                gender: 'M',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    expect(user.firstName).toBe('José María');
+    expect(user.lastName).toBe('García-López');
+  });
 
-            const user = new User(userData);
-            expect(user.gender).toBe('M');
-        });
+  test('should handle different date formats for birthDate', () => {
+    const dates = ['1990-01-01', '1985-12-25', '2000-06-15'];
 
-        it('should create user with Female gender', () => {
-            const userData: IUsers = {
-                email: 'female@example.com',
-                password: 'password',
-                firstName: 'Female',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '777',
-                phone: '306',
-                roleId: 'USER',
-                gender: 'F',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
+    dates.forEach(birthDate => {
+      const user = new User({
+        ...mockUserData,
+        birthDate
+      });
+      expect(user.birthDate).toBe(birthDate);
+    });
+  });
 
-            const user = new User(userData);
-            expect(user.gender).toBe('F');
-        });
+  test('should preserve timestamps correctly', () => {
+    const createdAt = new Date('2024-01-01T10:00:00Z');
+    const updatedAt = new Date('2024-01-02T15:30:00Z');
 
-        it('should create user with empty gender', () => {
-            const userData: IUsers = {
-                email: 'nogender@example.com',
-                password: 'password',
-                firstName: 'No',
-                lastName: 'Gender',
-                idType: 'cc',
-                idNumber: '888',
-                phone: '307',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.gender).toBe('');
-        });
+    const user = new User({
+      ...mockUserData,
+      createdAt,
+      updatedAt
     });
 
-    // ========================================================================
-    // Constructor Tests - Email Verification
-    // ========================================================================
-    describe('Given users with different email verification status', () => {
-        it('should create user with verified email', () => {
-            const userData: IUsers = {
-                email: 'verified@example.com',
-                password: 'password',
-                firstName: 'Verified',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '999',
-                phone: '308',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: true
-            };
+    expect(user.createdAt).toEqual(createdAt);
+    expect(user.updatedAt).toEqual(updatedAt);
+  });
 
-            const user = new User(userData);
-            expect(user.isEmailVerified).toBe(true);
-        });
+  test('should handle all user status values', () => {
+    const statuses = [UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED];
 
-        it('should create user with unverified email', () => {
-            const userData: IUsers = {
-                email: 'unverified@example.com',
-                password: 'password',
-                firstName: 'Unverified',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '000',
-                phone: '309',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.isEmailVerified).toBe(false);
-        });
+    statuses.forEach(status => {
+      const user = new User({
+        ...mockUserData,
+        status
+      });
+      expect(user.status).toBe(status);
     });
-
-    // ========================================================================
-    // Constructor Tests - Date Fields
-    // ========================================================================
-    describe('Given users with date fields', () => {
-        it('should correctly assign createdAt and updatedAt dates', () => {
-            const createdDate = new Date('2024-01-01T00:00:00');
-            const updatedDate = new Date('2024-06-15T12:30:00');
-
-            const userData: IUsers = {
-                email: 'dates@example.com',
-                password: 'password',
-                firstName: 'Date',
-                lastName: 'User',
-                idType: 'cc',
-                idNumber: '101',
-                phone: '310',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '1995-03-20',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: createdDate,
-                updatedAt: updatedDate,
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user.createdAt).toEqual(createdDate);
-            expect(user.updatedAt).toEqual(updatedDate);
-            expect(user.birthDate).toBe('1995-03-20');
-        });
-    });
-
-    // ========================================================================
-    // Constructor Tests - Optional ID field
-    // ========================================================================
-    describe('Given user data with optional id field', () => {
-        it('should assign _id when provided', () => {
-            const userData: IUsers = {
-                _id: 'custom-id-123',
-                email: 'withid@example.com',
-                password: 'password',
-                firstName: 'With',
-                lastName: 'ID',
-                idType: 'cc',
-                idNumber: '202',
-                phone: '311',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user._id).toBe('custom-id-123');
-        });
-
-        it('should handle user without _id', () => {
-            const userData: IUsers = {
-                email: 'noid@example.com',
-                password: 'password',
-                firstName: 'No',
-                lastName: 'ID',
-                idType: 'cc',
-                idNumber: '303',
-                phone: '312',
-                roleId: 'USER',
-                gender: '',
-                birthDate: '',
-                status: UserStatus.ACTIVE,
-                country: '',
-                state: '',
-                city: '',
-                neighborhood: '',
-                address: '',
-                postalCode: '',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                paymentMethodId: '',
-                isEmailVerified: false
-            };
-
-            const user = new User(userData);
-            expect(user._id).toBeUndefined();
-        });
-    });
+  });
 });

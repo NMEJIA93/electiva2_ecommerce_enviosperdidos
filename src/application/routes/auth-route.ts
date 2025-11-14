@@ -19,8 +19,8 @@ authRouter.post('/auth/register', useParamValidation, createUser);
 authRouter.get('/auth/session', authenticateToken, getLogin);
 
 //Email verification routes
-authRouter.post('/auth/verify-email', validateEmailVerification, verifyEmail);
-authRouter.post('/auth/resend-verification-code', validateResendCode, resendCode);
+authRouter.post('/auth/verify-email', authenticateToken, validateEmailVerification, verifyEmail);
+authRouter.post('/auth/resend-verification-code', authenticateToken, validateResendCode, resendCode);
 
 
 

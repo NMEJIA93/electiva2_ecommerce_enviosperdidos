@@ -8,10 +8,9 @@ import providerRouter from './provider-route';
 import categoryRouter from './categories-route';
 import preorderRouter from './preorder-router';
 import orderRouter from './order-route'; 
-
-// Swagger UI setup
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+import catalogRouter from './catalog-route';
 import { Preorder } from '../../domain/entities/Preorder';
 
 const swaggerDocument = YAML.load('./swagger.yaml');
@@ -25,7 +24,6 @@ appRouter.get('/', (request: Request, response: Response) => {
     });
 });
 
-// Swagger docs at /api/v1/api-docs
 appRouter.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 appRouter.use('/api/v1', userRouter);
@@ -35,6 +33,7 @@ appRouter.use('/api/v1', trackingRouter);
 appRouter.use('/api/v1', providerRouter);
 appRouter.use('/api/v1', categoryRouter);
 appRouter.use('/api/v1', inventoryRouter);
+appRouter.use('/api/v1', catalogRouter);
 appRouter.use('/api/v1', preorderRouter);
 appRouter.use('/api/v1/orders', orderRouter);
 

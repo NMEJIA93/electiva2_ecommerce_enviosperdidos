@@ -8,7 +8,7 @@ export interface ProductRequest {
     categoryId: string;
     images?: string[];
     providers: string[];
-    classification?: string;
+    isDiscontinued?: boolean;
 
 }
 
@@ -21,6 +21,6 @@ export function buildProductRequest(dto: ProductRequest): IProduct {
         categoryId: dto.categoryId,
         images: dto.images || [],
         providers: dto.providers || [],
-        classification: dto.classification
+        isDiscontinued: dto.isDiscontinued
     };
 }

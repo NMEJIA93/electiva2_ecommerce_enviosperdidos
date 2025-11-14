@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { saveCategory, findCategories, findCategoryById, deleteCategory} from "../../domain/services/catecories-services";
+import { saveCategory, findCategories, findCategoryById, deleteCategory} from "../../domain/services/categories-services";
 import { buildCategoriesRequest, CategoriesRequest } from "../dtos/categories";
 import { MongoCategoriesRepository } from "../../infraestructure/repositories/mongo-categories";
 import { CategoriesModel } from "../../infraestructure/database/categories-mongo";

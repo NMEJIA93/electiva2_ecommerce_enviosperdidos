@@ -9,5 +9,5 @@ export interface IProductDocument extends Document {
     createdAt: Date;
     updatedAt: Date;
     providers: string[];
-    classification?: string;
+    isDiscontinued?: boolean;
 }

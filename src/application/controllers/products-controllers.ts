@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-
 import { saveProduct, findProducts, findProductById, updateProductById, deleteProductById} from '../../domain/services/product-services';
 import { buildProductRequest, ProductRequest } from '../dtos/product-dtos';
 import { MongoProductRepository } from '../../infraestructure/repositories/mongo-products';
@@ -57,7 +56,6 @@ export const updateProduct = async (request: Request, response: Response) => {
     try {
         const productId = request.params.id;
         const productUpdates: Partial<IProduct> = { ...request.body };
-        
         const updatedProduct = await updateProductById(productRepo, productId, productUpdates);
 
         response.status(200).json({

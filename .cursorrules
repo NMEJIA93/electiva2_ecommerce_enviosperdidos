@@ -1,0 +1,161 @@
+# E-commerce Project - Clean Architecture Rules
+
+## Project Architecture
+This project follows Clean Architecture (Hexagonal Architecture) with the following layers:
+
+### Domain Layer (`src/domain/`)
+- **Entities** (`entities/`): Core business entities (User, Product, etc.)
+- **Interfaces** (`models/interfaces/`): Domain interfaces (IUsers, IProduct, etc.)
+- **Repositories** (`repositories/`): Repository interfaces (IUser-repository, etc.)
+- **Services** (`services/`): Business logic and use cases
+- **Business Rules** (`business-rules/`): Domain validation rules
+
+### Application Layer (`src/application/`)
+- **Controllers** (`controllers/`): HTTP request handlers
+- **DTOs** (`dtos/`): Data Transfer Objects for API communication
+- **Middlewares** (`middlewares/`): Request validation and authentication
+- **Routes** (`routes/`): Express route definitions
+
+### Infrastructure Layer (`src/infraestructure/`)
+- **Database** (`database/`): MongoDB models and schemas
+- **Repositories** (`repositories/`): Repository implementations
+- **Interfaces** (`interface/`): Infrastructure-specific interfaces
+- **Config** (`config/`): Database and external service configurations
+
+## Coding Standards
+
+### Language Requirements
+- **ALL CODE MUST BE WRITTEN IN ENGLISH**
+- Variable names, function names, comments, and documentation must be in English
+- Error messages and console logs must be in English
+- Only user-facing messages (API responses) can be in Spanish if needed
+
+### File Naming Conventions
+- Use kebab-case for file names: `user-controller.ts`, `product-dtos.ts`
+- Use PascalCase for class names: `User`, `Product`, `MongoUserRepository`
+- Use camelCase for variables and functions: `findUserById`, `buildUserRequest`
+
+### Architecture Patterns
+
+#### 1. Entity Creation
+When creating a new entity:
+```typescript
+// 1. Create interface in domain/models/interfaces/
+export interface IEntityName {
+    _id?: string;
+    // ... other properties
+}
+
+// 2. Create entity class in domain/entities/
+export class EntityName implements IEntityName {
+    // ... properties and constructor
+}
+
+// 3. Create repository interface in domain/repositories/
+export interface IEntityNameRepository {
+    save(entity: EntityName): Promise<EntityName>;
+    findById(id: string): Promise<EntityName>;
+    // ... other methods
+}
+```
+
+#### 2. Service Layer
+Services should contain business logic and use repository interfaces:
+```typescript
+export const saveEntity = async (entityRepo: IEntityNameRepository, entity: IEntityName) => {
+    try {
+        // Business logic here
+        const newEntity = new EntityName(entity);
+        return await entityRepo.save(newEntity);
+    } catch (error) {
+        throw new Error(`[ERROR TO SERVICE] - Error saving entity: ${error}`);
+    }
+};
+```
+
+#### 3. Controller Layer
+Controllers should be thin and delegate to services:
+```typescript
+export const createEntity = async (request: Request, response: Response) => {
+    try {
+        const newEntity = buildEntityRequest(request.body);
+        const result = await saveEntity(entityRepo, newEntity);
+        
+        response.status(201).json({
+            ok: true,
+            message: 'Entity created successfully',
+            entity: buildEntityResponse(result)
+        });
+    } catch (error) {
+        return response.status(500).json({
+            ok: false,
+            message: 'Internal server error',
+            error: (error as Error).message
+        });
+    }
+};
+```
+
+#### 4. DTOs
+Create separate DTOs for requests and responses:
+```typescript
+export interface EntityRequest {
+    // Request properties
+}
+
+export interface EntityResponse {
+    // Response properties (exclude sensitive data)
+}
+
+export function buildEntityRequest(dto: EntityRequest): IEntityName {
+    // Transform DTO to domain entity
+}
+
+export function buildEntityResponse(entity: any): EntityResponse {
+    // Transform domain entity to response DTO
+}
+```
+
+#### 5. Repository Implementation
+Implement repository interfaces in infrastructure layer:
+```typescript
+export class MongoEntityRepository implements IEntityNameRepository {
+    async save(entity: EntityName): Promise<EntityName> {
+        const created = await EntityModel.create(entity);
+        const plainEntity = created.toObject();
+        if (plainEntity._id && typeof plainEntity._id !== 'string') {
+            plainEntity._id = plainEntity._id.toString();
+        }
+        return new EntityName(plainEntity as IEntityName);
+    }
+    // ... other methods
+}
+```
+
+### Error Handling
+- Always wrap service methods in try-catch blocks
+- Use descriptive error messages in English
+- Include context in error messages: `[ERROR TO SERVICE] - Error description`
+- Return appropriate HTTP status codes in controllers
+
+### Dependencies
+- Domain layer should NOT depend on external frameworks
+- Application layer can depend on domain layer
+- Infrastructure layer can depend on both domain and application layers
+- Use dependency injection for repositories in controllers
+
+### Testing
+- Write unit tests for business logic in services
+- Write integration tests for controllers
+- Mock external dependencies (database, APIs)
+
+### Code Quality
+- Use TypeScript strict mode
+- Add proper type annotations
+- Use interfaces for all data structures
+- Follow SOLID principles
+- Keep functions small and focused
+- Add meaningful comments for complex business logic
+
+## File Structure Template
+When adding new features, follow this structure:

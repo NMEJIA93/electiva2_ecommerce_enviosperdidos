@@ -1,23 +1,61 @@
 import { Request, Response } from "express";
-import { IInventoryRepository } from "../../domain/repositories/IInventory-repository";
-import { MongoInventoryRepository } from "../../infraestructure/repositories/mongo-inventory";
-import { Inventory } from "../../domain/entities/Inventory";
+import {updateInventoryById,updateReservedStock,findInventoryById} from '../../domain/services/inventory-services';
 import { buildInventoryRequest, InventoryRequest } from "../dtos/inventory-dtos";
+import { MongoInventoryRepository } from "../../infraestructure/repositories/mongo-inventory";
+import { IInventory } from "../../domain/models/interfaces/IInventory";
 
-const inventoryRepo: IInventoryRepository = new MongoInventoryRepository();
+
+const inventoryRepo = new MongoInventoryRepository()
 
 export const updateInventory = async (request: Request, response: Response) => {
-    try {
+  try {
+    const productId = request.params.id;
+    const inventoryUpdates: Partial<IInventory> = { ...request.body };
+    const updatedInventory = await updateInventoryById(inventoryRepo, inventoryUpdates, productId);
+
+    response.status(200).json({
+      ok: true,
+      message: 'Inventory updated successfully',
+      inventory: updatedInventory
+    });
+  } catch (error) {
+    return response.status(500).json({
+      ok: false,
+      message: 'Internal server error',
+      error: (error as Error).message
+    });
+  }
+};
+
+
+export const updateReserved = async (request: Request, response : Response) =>{
+    try{
         const productId = request.params.id;
-        const inventoryUpdates: Partial<Inventory> = { ...request.body };
-        const updatedInventory = await inventoryRepo.updateInventory(productId, inventoryUpdates);
+        const inventoryUpdates : Partial <IInventory> = {...request.body};
+        const updateInventory = await updateReservedStock(inventoryRepo, inventoryUpdates, productId)
+
         response.status(200).json({
             ok: true,
-            message: 'Inventory updated successfully',
-            inventory: updatedInventory
-        });
+            message: 'inventory update successfully',
+            inventory: updateInventory
+        })
+    } catch (error){
+        return response.status(500).json({
+            ok: false,
+            message: 'internal server error',
+            error: (error as Error).message
+        })
     }
-    catch (error) {
+}
+
+export const getInventoryById = async (request: Request, response: Response) => {
+    try{
+        const invetory = await findInventoryById(inventoryRepo,request.params.id);
+        response.status(200).json ({
+            ok: true,
+            invetory
+        })
+    }catch (error){
         return response.status(500).json({
             ok: false,
             message: 'Internal server error',
@@ -26,22 +64,5 @@ export const updateInventory = async (request: Request, response: Response) => {
     }
 }
 
-export const updateReservedStock = async (request: Request, response: Response) => {
-    try {
-        const productId = request.params.id;
-        const inventoryRequest: InventoryRequest = buildInventoryRequest(request.body);
-        const updatedInventory = await inventoryRepo.updateReservedStock(productId, inventoryRequest);
-        response.status(200).json({
-            ok: true,
-            message: 'Reserved stock updated successfully',
-            inventory: updatedInventory
-        });
-    }
-    catch (error) {
-        return response.status(500).json({
-            ok: false,
-            message: 'Internal server error',
-            error: (error as Error).message
-        });
-    }
-}
+
+

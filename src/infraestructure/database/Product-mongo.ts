@@ -5,12 +5,12 @@ const ProductSchema = new mongoose.Schema<IProductDocument>({
     name: { type: String, required: true },
     description: { type: String, required: true },
     cost: { type: Number, required: true },
-    categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
+    categoryId: { type: Schema.Types.ObjectId, ref: "Categories", required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     providers: [{type: Schema.Types.ObjectId, ref: "Provider"}],
     images: [{ type: String }],
-    classification: { type: String, default: 'Vigenete' }
+    isDiscontinued: { type: Boolean, default: false }
 });
 
 export const ProductModel = mongoose.model<IProductDocument>('Product', ProductSchema);

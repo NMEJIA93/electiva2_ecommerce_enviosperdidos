@@ -12,6 +12,16 @@ tags:
     description: User management
   - name: Auth
     description: Authentication endpoints
+  - name: Products
+    description: Product management (Admin only)
+  - name: Categories
+    description: Category management (Admin only)
+  - name: Providers
+    description: Provider management (Admin only)
+  - name: Inventory
+    description: Inventory and stock management
+  - name: Catalog
+    description: Product catalog (authenticated users)
   - name: Product
     description: Product catalog
   - name: Preorder
@@ -272,7 +282,851 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/admin/product:
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: Creates a new product in the system. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductSuccessResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden - Admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieves the complete list of products. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Products list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductsListResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden - Admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieves a specific product by its ID. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Product retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden - Admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      description: Updates an existing product by its ID. All fields are optional. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID to update
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductSuccessResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden - Admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/product/{id}:
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      description: Deletes a product by its ID. Cannot delete products with reserved stock. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID to delete
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden - Admin permissions required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error (may include reserved stock error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/categories:
+    post:
+      tags:
+        - Categories
+      summary: Create a new category
+      description: Creates a new product category. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieves all product categories. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriesListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Get category by ID
+      description: Retrieves a specific category by its ID. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439012"
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Category not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    put:
+      tags:
+        - Categories
+      summary: Update a category
+      description: Updates an existing category. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID to update
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439012"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategorySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Category not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete a category
+      description: Deletes a category. Cannot delete categories associated with existing products. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID to delete
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439012"
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Category not found"
+        '500':
+          description: Internal server error (may include products association error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/provider:
+    post:
+      tags:
+        - Providers
+      summary: Create a new provider
+      description: Creates a new provider. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderRequest'
+      responses:
+        '201':
+          description: Provider created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderSuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product//provider:
+    get:
+      tags:
+        - Providers
+      summary: Get all providers
+      description: Retrieves all providers. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Providers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvidersListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/provider/{id}:
+    get:
+      tags:
+        - Providers
+      summary: Get provider by ID
+      description: Retrieves a specific provider by its ID. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider ID
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+      responses:
+        '200':
+          description: Provider retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Provider not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    put:
+      tags:
+        - Providers
+      summary: Update a provider
+      description: Updates an existing provider. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider ID to update
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderRequest'
+      responses:
+        '200':
+          description: Provider updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderSuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Provider not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    delete:
+      tags:
+        - Providers
+      summary: Delete a provider
+      description: Deletes a provider and removes it from all associated products. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider ID to delete
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+      responses:
+        '200':
+          description: Provider deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Provider not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/admin/product/inventory/{id}:
+    put:
+      tags:
+        - Inventory
+      summary: Update product inventory
+      description: Updates price and stock for a product. Requires authentication and admin role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryUpdateRequest'
+      responses:
+        '200':
+          description: Inventory updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventorySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/user/cart/product/inventory/hold/{id}:
+    patch:
+      tags:
+        - Inventory
+      summary: Update reserved stock
+      description: Adds or subtracts reserved stock for a product. Used for cart operations. Requires authentication (admin or user role).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservedStockRequest'
+      responses:
+        '200':
+          description: Reserved stock updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventorySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error (may include validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /api/v1/catalog:
+    get:
+      tags:
+        - Catalog
+      summary: Get product catalog
+      description: Retrieves all products with available stock (stock > 0). Includes product details, category info, price, and stock information. Requires authentication (admin or user role).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Catalog retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication token. Format -> Authorization Bearer {token}
+
   schemas:
     LoginRequest:
       type: object
@@ -620,6 +1474,413 @@ components:
         updatedAt:
           type: string
           format: date-time
+        paymentMethodId:
+          type: string
+
+    # Product Schemas
+    Product:
+      type: object
+      required:
+        - name
+        - description
+        - cost
+        - categoryId
+        - providers
+      properties:
+        id:
+          type: string
+          description: Product unique ID
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Product name
+          example: "Laptop Dell Inspiron"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: Product description
+          example: "High performance laptop with Intel i7 processor"
+        cost:
+          type: number
+          minimum: 0
+          description: Product cost
+          example: 1200.50
+        stock:
+          type: number
+          minimum: 0
+          description: Available stock
+          example: 50
+        categoryId:
+          type: string
+          description: Category ID
+          example: "507f1f77bcf86cd799439012"
+        images:
+          type: array
+          items:
+            type: string
+          description: Product images URLs
+          example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+        providers:
+          type: array
+          items:
+            type: string
+          description: Provider IDs
+          example: ["507f1f77bcf86cd799439013"]
+        isDiscontinued:
+          type: boolean
+          description: Indicates if product is discontinued
+          example: false
+
+    ProductUpdateRequest:
+      type: object
+      description: All fields are optional for updates
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: "Laptop Dell Inspiron Updated"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Updated high performance laptop"
+        cost:
+          type: number
+          minimum: 0
+          example: 1100.00
+        stock:
+          type: number
+          minimum: 0
+          example: 45
+        categoryId:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        images:
+          type: array
+          items:
+            type: string
+          example: ["https://example.com/new-image.jpg"]
+        providers:
+          type: array
+          items:
+            type: string
+          example: ["507f1f77bcf86cd799439013"]
+        isDiscontinued:
+          type: boolean
+          example: false
+
+    ProductSuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Product created successfully"
+        product:
+          $ref: '#/components/schemas/Product'
+
+    ProductsListResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+
+    DeleteResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Product deleted successfully"
+
+    ProductErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "The product name must be a string between 3 and 50 characters"
+
+    ServerErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Internal server error"
+        error:
+          type: string
+          example: "Database connection failed"
+
+    UnauthorizedResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Access token is required"
+
+    ForbiddenResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "You do not have permission to perform this action"
+
+    # Category Schemas
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Category unique ID
+          example: "507f1f77bcf86cd799439012"
+        name:
+          type: string
+          description: Category name
+          example: "Electronics"
+
+    CategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Category name
+          example: "Electronics"
+
+    CategorySuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Category created successfully"
+        category:
+          $ref: '#/components/schemas/Category'
+
+    CategoriesListResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    CategoryResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        category:
+          $ref: '#/components/schemas/Category'
+
+    # Provider Schemas
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Provider unique ID
+          example: "507f1f77bcf86cd799439013"
+        name:
+          type: string
+          description: Provider name
+          example: "Tech Distributors Inc"
+
+    ProviderRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Provider name
+          example: "Tech Distributors Inc"
+
+    ProviderSuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Provider created successfully"
+        provider:
+          $ref: '#/components/schemas/Provider'
+
+    ProvidersListResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+
+    ProviderResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        provider:
+          $ref: '#/components/schemas/Provider'
+
+    # Inventory Schemas
+    Inventory:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Inventory record ID
+          example: "507f1f77bcf86cd799439014"
+        productId:
+          type: string
+          description: Associated product ID
+          example: "507f1f77bcf86cd799439011"
+        price:
+          type: number
+          minimum: 0
+          description: Product selling price
+          example: 1500.00
+        stock:
+          type: number
+          minimum: 0
+          description: Available stock
+          example: 100
+        reservedStock:
+          type: number
+          minimum: 0
+          description: Stock reserved in carts
+          example: 5
+
+    InventoryUpdateRequest:
+      type: object
+      properties:
+        price:
+          type: number
+          minimum: 0
+          description: Product selling price (must be greater than 0)
+          example: 1500.00
+        stock:
+          type: number
+          minimum: 0
+          description: Available stock (must be integer >= 0)
+          example: 100
+
+    ReservedStockRequest:
+      type: object
+      required:
+        - reservedStock
+        - action
+      properties:
+        reservedStock:
+          type: number
+          minimum: 1
+          description: Amount of stock to reserve or release (must be positive)
+          example: 3
+        action:
+          type: number
+          enum: [1, 2]
+          description: "Action to perform: 1 = add reserved stock, 2 = subtract reserved stock"
+          example: 1
+
+    InventorySuccessResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Inventory updated successfully"
+        inventory:
+          $ref: '#/components/schemas/Inventory'
+
+    # Catalog Schemas
+    CatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Product ID
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          description: Product name
+          example: "Laptop Dell Inspiron"
+        description:
+          type: string
+          description: Product description
+          example: "High performance laptop with Intel i7 processor"
+        categoryId:
+          type: string
+          description: Category ID
+          example: "507f1f77bcf86cd799439012"
+        categoryName:
+          type: string
+          description: Category name
+          example: "Electronics"
+        isDiscontinued:
+          type: boolean
+          description: Indicates if product is discontinued
+          example: false
+        stock:
+          type: number
+          description: Available stock
+          example: 50
+        price:
+          type: number
+          description: Product selling price
+          example: 1500.00
+        reservedStock:
+          type: number
+          description: Stock reserved in carts
+          example: 5
+        images:
+          type: array
+          items:
+            type: string
+          description: Product images URLs
+          example: ["https://example.com/image1.jpg"]
+
+    CatalogResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+        catalog:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogItem'
           example: "2024-06-10T12:00:00Z"
 
     OrderResponse:

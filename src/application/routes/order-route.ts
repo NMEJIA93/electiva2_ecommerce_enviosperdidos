@@ -4,7 +4,8 @@ import {
     confirmOrderController, 
     getOrderByIdController, 
     getOrderByNumberController, 
-    getUserOrdersController 
+    getUserOrdersController,
+    cancelOrderController 
 } from '../controllers/order-controller';
 import { authenticateToken } from '../middlewares/auth-middleware';
 
@@ -24,4 +25,5 @@ router.get('/number/:orderNumber', getOrderByNumberController);
 
 router.get('/user/:userId', getUserOrdersController);
 
+router.patch('/user/:userId/order/:orderId/cancel', cancelOrderController);
 export default router;

@@ -3,6 +3,7 @@ import {updateInventoryById,updateReservedStock,findInventoryById} from '../../d
 import { buildInventoryRequest, InventoryRequest } from "../dtos/inventory-dtos";
 import { MongoInventoryRepository } from "../../infraestructure/repositories/mongo-inventory";
 import { IInventory } from "../../domain/models/interfaces/IInventory";
+import cache from '../../infraestructure/cache/node-cache';
 
 
 const inventoryRepo = new MongoInventoryRepository()
@@ -12,6 +13,9 @@ export const updateInventory = async (request: Request, response: Response) => {
     const productId = request.params.id;
     const inventoryUpdates: Partial<IInventory> = { ...request.body };
     const updatedInventory = await updateInventoryById(inventoryRepo, inventoryUpdates, productId);
+
+    const keys = cache.keys();
+    keys.forEach(k=>{ if (k.startsWith('catalog:')) cache.del(k)})
 
     response.status(200).json({
       ok: true,
@@ -33,6 +37,9 @@ export const updateReserved = async (request: Request, response : Response) =>{
         const productId = request.params.id;
         const inventoryUpdates : Partial <IInventory> = {...request.body};
         const updateInventory = await updateReservedStock(inventoryRepo, inventoryUpdates, productId)
+
+        const keys = cache.keys();
+        keys.forEach(k=>{ if (k.startsWith('catalog:')) cache.del(k)})
 
         response.status(200).json({
             ok: true,

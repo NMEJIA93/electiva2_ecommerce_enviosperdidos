@@ -73,6 +73,57 @@ El servidor estará en: [http://localhost:5000](http://localhost:5000)
 
 ---
 
+## 🐳 Docker (Entorno de aprendizaje)
+
+Esta versión incluye configuración para levantar API + MongoDB con Docker Compose.
+
+### 1️⃣ Preparar variables de entorno
+
+Si no tienes `.env`, crea uno basado en `.env.example`.
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 2️⃣ Levantar servicios
+
+```sh
+docker compose up --build -d
+```
+
+Servicios que se levantan:
+
+- `app`: API Node.js (puerto `5000`)
+- `mongo`: MongoDB local (puerto `27017`)
+
+La API se conecta a Mongo mediante red interna de Compose usando:
+
+```env
+MONGODB_URI=mongodb://mongo:27017/ecommerce_enviosperdidos
+```
+
+### 3️⃣ Ver logs
+
+```sh
+docker compose logs -f app
+```
+
+### 4️⃣ Detener y limpiar
+
+```sh
+docker compose down
+```
+
+Si también quieres borrar datos de Mongo en este entorno de práctica:
+
+```sh
+docker compose down -v
+```
+
+---
+
 ## 📚 API Documentation
 
 ### 📝 Swagger UI

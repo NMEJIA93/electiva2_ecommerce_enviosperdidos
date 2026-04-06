@@ -14,22 +14,60 @@ pipeline {
             }
         }
 
+        stage('Start mongo') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'docker compose up -d mongo'
+                    } else {
+                        bat 'docker compose up -d mongo'
+                    }
+                }
+            }
+        }
+
         stage('Run app') {
             steps {
                 script {
                     if (isUnix()) {
-                        sh '''
-                            nohup npm run start > app.log 2>&1 &
-                            echo $! > .app.pid
-                            sleep 10
-                            curl -f http://localhost:5000/
-                        '''
+                        withEnv([
+                            'PORT=5000',
+                            'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
+                            'JWT_EXPIRES_IN=24h',
+                            'MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce_enviosperdidos',
+                            'NOTIFICATION_CRON=*/5 * * * *',
+                            'NOTIFICATION_MAX_RETRIES=3',
+                            'NODE_ENV=development'
+                        ]) {
+                            sh '''
+                                nohup npm run start > app.log 2>&1 &
+                                echo $! > .app.pid
+                                for i in $(seq 1 30); do
+                                    if curl -fsS http://localhost:5000/ >/dev/null; then
+                                        exit 0
+                                    fi
+                                    sleep 2
+                                done
+                                echo "[CI] App did not start in time. Recent logs:"
+                                tail -n 200 app.log || true
+                                exit 1
+                            '''
+                        }
                     } else {
-                        bat '''
-                            powershell -NoProfile -Command "$p = Start-Process cmd -ArgumentList '/c','npm run start' -PassThru; $p.Id | Set-Content .app.pid"
-                            powershell -NoProfile -Command "Start-Sleep -Seconds 10"
-                            powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing http://localhost:5000/ | Out-Null"
-                        '''
+                        withEnv([
+                            'PORT=5000',
+                            'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
+                            'JWT_EXPIRES_IN=24h',
+                            'MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce_enviosperdidos',
+                            'NOTIFICATION_CRON=*/5 * * * *',
+                            'NOTIFICATION_MAX_RETRIES=3',
+                            'NODE_ENV=development'
+                        ]) {
+                            bat '''
+                                powershell -NoProfile -Command "$proc = Start-Process cmd -ArgumentList '/c','npm run start > app.log 2>&1' -PassThru; $proc.Id | Set-Content .app.pid"
+                                powershell -NoProfile -Command "$ok = $false; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:5000/ | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 2 } }; if (-not $ok) { Write-Host '[CI] App did not start in time. Recent logs:'; if (Test-Path app.log) { Get-Content app.log -Tail 200 }; exit 1 }"
+                            '''
+                        }
                     }
                 }
             }
@@ -56,10 +94,12 @@ pipeline {
                         if [ -f .app.pid ]; then
                             kill $(cat .app.pid) || true
                         fi
+                        docker compose down || true
                     '''
                 } else {
                     bat '''
-                        powershell -NoProfile -Command "if (Test-Path .app.pid) { $pid = Get-Content .app.pid; Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue }"
+                        powershell -NoProfile -Command "if (Test-Path .app.pid) { $appPid = (Get-Content .app.pid -Raw).Trim(); if ($appPid) { Stop-Process -Id $appPid -Force -ErrorAction SilentlyContinue } }"
+                        cmd /c "docker compose down || exit /b 0"
                     '''
                 }
             }

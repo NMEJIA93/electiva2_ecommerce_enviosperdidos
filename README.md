@@ -77,7 +77,6 @@ El servidor estará en: [http://localhost:5000](http://localhost:5000)
 
 Esta versión incluye configuración para levantar API + MongoDB con Docker Compose.
 
-
 ### 1️⃣ Preparar variables de entorno
 
 Si no tienes `.env`, crea uno basado en `.env.example`.

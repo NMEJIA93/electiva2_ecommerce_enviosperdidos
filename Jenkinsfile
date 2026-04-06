@@ -18,9 +18,17 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'docker compose up -d mongo'
+                        sh '''
+                            if [ ! -f .env ] && [ -f .env.example ]; then
+                                cp .env.example .env
+                            fi
+                            docker compose up -d mongo
+                        '''
                     } else {
-                        bat 'docker compose up -d mongo'
+                        bat '''
+                            if not exist .env if exist .env.example copy /Y .env.example .env
+                            docker compose up -d mongo
+                        '''
                     }
                 }
             }
@@ -94,12 +102,16 @@ pipeline {
                         if [ -f .app.pid ]; then
                             kill $(cat .app.pid) || true
                         fi
+                        if [ ! -f .env ] && [ -f .env.example ]; then
+                            cp .env.example .env
+                        fi
                         docker compose down || true
                     '''
                 } else {
                     bat '''
                         powershell -NoProfile -Command "if (Test-Path .app.pid) { $appPid = (Get-Content .app.pid -Raw).Trim(); if ($appPid) { Stop-Process -Id $appPid -Force -ErrorAction SilentlyContinue } }"
-                        cmd /c "docker compose down || exit /b 0"
+                        if not exist .env if exist .env.example copy /Y .env.example .env
+                        cmd /c "docker compose down"
                     '''
                 }
             }

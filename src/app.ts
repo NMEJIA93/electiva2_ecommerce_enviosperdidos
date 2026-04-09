@@ -36,7 +36,7 @@ const corsOptions: CorsOptions = {
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(appRouter);
 

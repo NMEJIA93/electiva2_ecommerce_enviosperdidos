@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import express, {Application, Request, Response} from 'express';
+import cors, { CorsOptions } from 'cors';
 
 import appRouter from './application/routes/app-router'
 import { dbConnection } from './infraestructure/config/config-db-mongo';
@@ -25,7 +26,17 @@ startNotificationRetryJob();
 
 const app:Application = express();
 
+const corsOptions: CorsOptions = {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 204
+};
+
 app.use(express.json());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(appRouter);
 

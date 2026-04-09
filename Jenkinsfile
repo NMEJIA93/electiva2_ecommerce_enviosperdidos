@@ -29,13 +29,13 @@ pipeline {
                                 cp .env.example .env
                             fi
                             docker compose down --remove-orphans || true
-                            docker compose up -d mongo
+                            MONGO_PORT=27018 docker compose up -d mongo
                         '''
                     } else {
                         bat '''
                             if not exist .env if exist .env.example copy /Y .env.example .env
                             cmd /c "docker compose down --remove-orphans"
-                            docker compose up -d mongo
+                            set MONGO_PORT=27018&& docker compose up -d mongo
                         '''
                     }
                 }
@@ -51,7 +51,7 @@ pipeline {
                             'PORT=5000',
                             'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
                             'JWT_EXPIRES_IN=24h',
-                            'MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce_enviosperdidos',
+                            'MONGODB_URI=mongodb://127.0.0.1:27018/ecommerce_enviosperdidos',
                             'NOTIFICATION_CRON=*/5 * * * *',
                             'NOTIFICATION_MAX_RETRIES=3',
                             'NODE_ENV=development'
@@ -78,7 +78,7 @@ pipeline {
                             'PORT=5000',
                             'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
                             'JWT_EXPIRES_IN=24h',
-                            'MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce_enviosperdidos',
+                            'MONGODB_URI=mongodb://127.0.0.1:27018/ecommerce_enviosperdidos',
                             'NOTIFICATION_CRON=*/5 * * * *',
                             'NOTIFICATION_MAX_RETRIES=3',
                             'NODE_ENV=development'

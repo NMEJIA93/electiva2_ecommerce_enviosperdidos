@@ -6,6 +6,7 @@ pipeline {
     }
 
     stages {
+        
         stage('Install dependencies') {
             steps {
                 echo '[CI] Stage: Install dependencies - running npm install'
@@ -29,13 +30,35 @@ pipeline {
                                 cp .env.example .env
                             fi
                             docker compose down --remove-orphans || true
-                            MONGO_PORT=27018 docker compose up -d mongo
+                            docker rm -f electiva3-mongo-1 || true
+                            MONGO_PORT=27018 docker compose up -d --force-recreate --renew-anon-volumes mongo
+                            CONTAINER_ID=$(docker compose ps -q mongo)
+                            if [ -z "$CONTAINER_ID" ]; then
+                                echo "[CI] Mongo container was not created"
+                                exit 1
+                            fi
+                            echo "[CI] Waiting for Mongo health status"
+                            for i in $(seq 1 30); do
+                                STATUS=$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || echo "unknown")
+                                if [ "$STATUS" = "healthy" ]; then
+                                    echo "[CI] Mongo is healthy"
+                                    exit 0
+                                fi
+                                sleep 2
+                            done
+                            echo "[CI] Mongo did not become healthy in time"
+                            docker logs "$CONTAINER_ID" --tail 200 || true
+                            exit 1
                         '''
                     } else {
                         bat '''
                             if not exist .env if exist .env.example copy /Y .env.example .env
-                            cmd /c "docker compose down --remove-orphans"
-                            set MONGO_PORT=27018&& docker compose up -d mongo
+                            cmd /c "docker compose down --remove-orphans" || echo [CI] No previous compose stack to stop
+                            cmd /c "docker rm -f electiva3-mongo-1" || echo [CI] No existing mongo container to remove
+                            set MONGO_PORT=27018&& docker compose up -d --force-recreate --renew-anon-volumes mongo
+                            echo [CI] Waiting for Mongo health status
+                            powershell -NoProfile -Command "$cid = (docker compose ps -q mongo).Trim(); if (-not $cid) { Write-Host '[CI] Mongo container was not created'; exit 1 }; $ok = $false; for ($i=0; $i -lt 30; $i++) { $status = (docker inspect -f '{{.State.Health.Status}}' $cid 2>$null); if ($status -eq 'healthy') { $ok = $true; break }; Start-Sleep -Seconds 2 }; if (-not $ok) { Write-Host '[CI] Mongo did not become healthy in time'; docker logs --tail 200 $cid; exit 1 }"
+                            echo [CI] Mongo is healthy
                         '''
                     }
                 }

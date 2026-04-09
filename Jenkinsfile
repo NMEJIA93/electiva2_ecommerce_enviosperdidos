@@ -28,11 +28,13 @@ pipeline {
                             if [ ! -f .env ] && [ -f .env.example ]; then
                                 cp .env.example .env
                             fi
+                            docker compose down --remove-orphans || true
                             docker compose up -d mongo
                         '''
                     } else {
                         bat '''
                             if not exist .env if exist .env.example copy /Y .env.example .env
+                            cmd /c "docker compose down --remove-orphans"
                             docker compose up -d mongo
                         '''
                     }

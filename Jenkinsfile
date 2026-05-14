@@ -76,6 +76,9 @@ pipeline {
                         withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
                             sh '''
                                 cd terraform
+                                docker rm -f electiva2-ecommerce-api-local electiva2-ecommerce-mongo-local || true
+                                docker network rm electiva2-ecommerce-network-local || true
+                                docker volume rm electiva2-ecommerce-mongo-data-local || true
                                 terraform destroy -input=false -auto-approve || true
                             '''
                         }
@@ -83,6 +86,9 @@ pipeline {
                         withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
                             bat '''
                                 cd terraform
+                                docker rm -f electiva2-ecommerce-api-local electiva2-ecommerce-mongo-local >nul 2>nul
+                                docker network rm electiva2-ecommerce-network-local >nul 2>nul
+                                docker volume rm electiva2-ecommerce-mongo-data-local >nul 2>nul
                                 terraform destroy -input=false -auto-approve || true
                             '''
                         }

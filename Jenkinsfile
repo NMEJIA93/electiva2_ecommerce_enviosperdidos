@@ -1,3 +1,24 @@
+def terraformLocalEnv(String dockerHost) {
+    return [
+        "TF_VAR_docker_host=${dockerHost}",
+        'TF_VAR_network_name=electiva2-ecommerce-network-local',
+        'TF_VAR_image_name=electiva2-ecommerce-enviosperdidos-api-local',
+        'TF_VAR_image_tag=local',
+        'TF_VAR_app_container_name=electiva2-ecommerce-api-local',
+        'TF_VAR_app_port=5001',
+        'TF_VAR_mongo_image=mongo:7',
+        'TF_VAR_mongo_container_name=electiva2-ecommerce-mongo-local',
+        'TF_VAR_mongo_volume_name=electiva2-ecommerce-mongo-data-local',
+        'TF_VAR_mongo_host_port=27019',
+        'TF_VAR_mongodb_database=ecommerce_enviosperdidos',
+        'TF_VAR_jwt_secret=jenkins_ci_secret_key_at_least_32_chars_long',
+        'TF_VAR_jwt_expires_in=24h',
+        'TF_VAR_node_env=development',
+        'TF_VAR_notification_cron=*/5 * * * *',
+        'TF_VAR_notification_max_retries=3'
+    ]
+}
+
 pipeline {
     agent any
 
@@ -20,100 +41,127 @@ pipeline {
             }
         }
 
-        stage('Start mongo') {
+        stage('Terraform validate') {
             steps {
-                echo '[CI] Stage: Start mongo - ensuring .env and starting Mongo container'
+                echo '[CI] Stage: Terraform validate - checking Terraform module in terraform/'
                 script {
                     if (isUnix()) {
-                        sh '''
-                            if [ ! -f .env ] && [ -f .env.example ]; then
-                                cp .env.example .env
-                            fi
-                            docker compose down --remove-orphans || true
-                            docker rm -f electiva3-mongo-1 || true
-                            MONGO_PORT=27018 docker compose up -d --force-recreate --renew-anon-volumes mongo
-                            CONTAINER_ID=$(docker compose ps -q mongo)
-                            if [ -z "$CONTAINER_ID" ]; then
-                                echo "[CI] Mongo container was not created"
-                                exit 1
-                            fi
-                            echo "[CI] Waiting for Mongo health status"
-                            for i in $(seq 1 30); do
-                                STATUS=$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || echo "unknown")
-                                if [ "$STATUS" = "healthy" ]; then
-                                    echo "[CI] Mongo is healthy"
-                                    exit 0
-                                fi
-                                sleep 2
-                            done
-                            echo "[CI] Mongo did not become healthy in time"
-                            docker logs "$CONTAINER_ID" --tail 200 || true
-                            exit 1
-                        '''
+                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                            sh '''
+                                cd terraform
+                                terraform fmt -check -recursive .
+                                terraform init -backend=false
+                                terraform validate
+                            '''
+                        }
                     } else {
-                        bat '''
-                            if not exist .env if exist .env.example copy /Y .env.example .env
-                            cmd /c "docker compose down --remove-orphans" || echo [CI] No previous compose stack to stop
-                            cmd /c "docker rm -f electiva3-mongo-1" || echo [CI] No existing mongo container to remove
-                            set MONGO_PORT=27018&& docker compose up -d --force-recreate --renew-anon-volumes mongo
-                            echo [CI] Waiting for Mongo health status
-                            powershell -NoProfile -Command "$cid = (docker compose ps -q mongo).Trim(); if (-not $cid) { Write-Host '[CI] Mongo container was not created'; exit 1 }; $ok = $false; for ($i=0; $i -lt 30; $i++) { $status = (docker inspect -f '{{.State.Health.Status}}' $cid 2>$null); if ($status -eq 'healthy') { $ok = $true; break }; Start-Sleep -Seconds 2 }; if (-not $ok) { Write-Host '[CI] Mongo did not become healthy in time'; docker logs --tail 200 $cid; exit 1 }"
-                            echo [CI] Mongo is healthy
-                        '''
+                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                            bat '''
+                                cd terraform
+                                terraform fmt -check -recursive .
+                                terraform init -backend=false
+                                terraform validate
+                            '''
+                        }
                     }
                 }
             }
         }
 
-        stage('Run app') {
+        stage('Terraform cleanup') {
             steps {
-                echo '[CI] Stage: Run app - starting API and waiting for health check'
+                echo '[CI] Stage: Terraform cleanup - destroying previous local Docker infrastructure before planning'
                 script {
                     if (isUnix()) {
-                        withEnv([
-                            'PORT=5000',
-                            'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
-                            'JWT_EXPIRES_IN=24h',
-                            'MONGODB_URI=mongodb://127.0.0.1:27018/ecommerce_enviosperdidos',
-                            'NOTIFICATION_CRON=*/5 * * * *',
-                            'NOTIFICATION_MAX_RETRIES=3',
-                            'NODE_ENV=development'
-                        ]) {
+                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
                             sh '''
-                                echo "[CI] Starting application process"
-                                nohup npm run start > app.log 2>&1 &
-                                echo $! > .app.pid
-                                echo "[CI] Waiting for app readiness on http://localhost:5000/"
-                                for i in $(seq 1 30); do
-                                    if curl -fsS http://localhost:5000/ >/dev/null; then
-                                        echo "[CI] App is up and reachable"
-                                        exit 0
-                                    fi
-                                    sleep 2
-                                done
-                                echo "[CI] App did not start in time. Recent logs:"
-                                tail -n 200 app.log || true
-                                exit 1
+                                cd terraform
+                                terraform destroy -input=false -auto-approve || true
                             '''
                         }
                     } else {
-                        withEnv([
-                            'PORT=5000',
-                            'JWT_SECRET=jenkins_ci_secret_key_at_least_32_chars_long',
-                            'JWT_EXPIRES_IN=24h',
-                            'MONGODB_URI=mongodb://127.0.0.1:27018/ecommerce_enviosperdidos',
-                            'NOTIFICATION_CRON=*/5 * * * *',
-                            'NOTIFICATION_MAX_RETRIES=3',
-                            'NODE_ENV=development'
-                        ]) {
+                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
                             bat '''
-                                echo [CI] Starting application process
-                                powershell -NoProfile -Command "$proc = Start-Process cmd -ArgumentList '/c','npm run start > app.log 2>&1' -PassThru; $proc.Id | Set-Content .app.pid"
-                                echo [CI] Waiting for app readiness on http://localhost:5000/
-                                powershell -NoProfile -Command "$ok = $false; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:5000/ | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 2 } }; if (-not $ok) { Write-Host '[CI] App did not start in time. Recent logs:'; if (Test-Path app.log) { Get-Content app.log -Tail 200 }; exit 1 }"
-                                echo [CI] App is up and reachable
+                                cd terraform
+                                terraform destroy -input=false -auto-approve || true
                             '''
                         }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform plan') {
+            steps {
+                echo '[CI] Stage: Terraform plan - generating a local Docker plan'
+                script {
+                    if (isUnix()) {
+                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                            sh '''
+                                cd terraform
+                                terraform plan -input=false -out=tfplan
+                            '''
+                        }
+                    } else {
+                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                            bat '''
+                                cd terraform
+                                terraform plan -input=false -out=tfplan
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform apply') {
+            steps {
+                echo '[CI] Stage: Terraform apply - creating Docker infrastructure from the saved plan'
+                script {
+                    if (isUnix()) {
+                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                            sh '''
+                                cd terraform
+                                terraform apply -input=false -auto-approve tfplan
+                            '''
+                        }
+                    } else {
+                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                            bat '''
+                                cd terraform
+                                terraform apply -input=false -auto-approve tfplan
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Verify terraform deployment') {
+            steps {
+                echo '[CI] Stage: Verify terraform deployment - waiting for API container to answer'
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            echo "[CI] Waiting for API container on http://localhost:5001/"
+                            for i in $(seq 1 30); do
+                                if curl -fsS http://localhost:5001/ >/dev/null; then
+                                    echo "[CI] Terraform deployment is reachable"
+                                    exit 0
+                                fi
+                                sleep 2
+                            done
+                            echo "[CI] API did not become reachable in time"
+                            cd terraform
+                            terraform output || true
+                            exit 1
+                        '''
+                    } else {
+                        bat '''
+                            echo [CI] Waiting for API container on http://localhost:5001/
+                            powershell -NoProfile -Command "$ok = $false; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:5001/ | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 2 } }; if (-not $ok) { Write-Host '[CI] API did not become reachable in time'; Set-Location terraform; terraform output; exit 1 }"
+                            echo [CI] Terraform deployment is reachable
+                        '''
                     }
                 }
             }
@@ -138,21 +186,11 @@ pipeline {
             script {
                 if (isUnix()) {
                     sh '''
-                        echo "[CI] Post: stopping app process and cleaning containers"
-                        if [ -f .app.pid ]; then
-                            kill $(cat .app.pid) || true
-                        fi
-                        if [ ! -f .env ] && [ -f .env.example ]; then
-                            cp .env.example .env
-                        fi
-                        docker compose down || true
+                        echo "[CI] Post: cleaning Terraform-managed infrastructure"
                     '''
                 } else {
                     bat '''
-                        echo [CI] Post: stopping app process and cleaning containers
-                        powershell -NoProfile -Command "if (Test-Path .app.pid) { $appPid = (Get-Content .app.pid -Raw).Trim(); if ($appPid) { Stop-Process -Id $appPid -Force -ErrorAction SilentlyContinue } }"
-                        if not exist .env if exist .env.example copy /Y .env.example .env
-                        cmd /c "docker compose down"
+                        echo [CI] Terraform-managed infrastructure left running after pipeline completion
                     '''
                 }
             }

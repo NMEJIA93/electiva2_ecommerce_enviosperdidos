@@ -124,6 +124,23 @@ docker compose down -v
 
 ---
 
+## 🧱 Terraform + Docker local
+
+Si prefieres levantar la API con Terraform en lugar de Docker Compose, el módulo está en [`terraform/`](terraform/).
+
+### Inicio rápido
+
+```powershell
+cd terraform
+Copy-Item terraform.tfvars.example terraform.tfvars
+terraform init
+terraform apply
+```
+
+La API quedará disponible en [http://localhost:5000](http://localhost:5000) y Swagger en [http://localhost:5000/api/v1/api-docs](http://localhost:5000/api/v1/api-docs).
+
+---
+
 ## 📚 API Documentation
 
 ### 📝 Swagger UI

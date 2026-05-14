@@ -9,6 +9,6 @@ COPY swagger.yaml ./
 COPY tsconfig.json ./
 COPY src ./src
 
-EXPOSE 5000
+EXPOSE 5001
 
 CMD ["npm", "run", "start:docker"]

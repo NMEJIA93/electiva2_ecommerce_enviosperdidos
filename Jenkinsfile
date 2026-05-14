@@ -93,6 +93,7 @@ pipeline {
                                 for /f %%i in ('docker ps -aq --filter "ancestor=mongo:7"') do docker rm -f %%i >nul 2>nul
                                 for /f %%i in ('docker network ls -q --filter "name=electiva2-ecommerce-network-local"') do docker network rm %%i >nul 2>nul
                                 for /f %%i in ('docker volume ls -q --filter "name=electiva2-ecommerce-mongo-data-local"') do docker volume rm %%i >nul 2>nul
+                                exit /b 0
                             '''
                         }
                     }

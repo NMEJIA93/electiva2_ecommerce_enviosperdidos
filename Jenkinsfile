@@ -75,21 +75,23 @@ pipeline {
                     if (isUnix()) {
                         withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
                             sh '''
-                                cd terraform
-                                docker rm -f electiva2-ecommerce-api-local electiva2-ecommerce-mongo-local || true
+                                docker ps -aq --filter name=electiva2-ecommerce-api-local | xargs -r docker rm -f || true
+                                docker ps -aq --filter name=electiva2-ecommerce-mongo-local | xargs -r docker rm -f || true
+                                docker ps -aq --filter ancestor=electiva2-ecommerce-enviosperdidos-api-local:local | xargs -r docker rm -f || true
+                                docker ps -aq --filter ancestor=mongo:7 | xargs -r docker rm -f || true
                                 docker network rm electiva2-ecommerce-network-local || true
                                 docker volume rm electiva2-ecommerce-mongo-data-local || true
-                                terraform destroy -input=false -auto-approve || true
                             '''
                         }
                     } else {
                         withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
                             bat '''
-                                cd terraform
-                                docker rm -f electiva2-ecommerce-api-local electiva2-ecommerce-mongo-local >nul 2>nul
+                                for /f %%i in ('docker ps -aq --filter "name=electiva2-ecommerce-api-local"') do docker rm -f %%i >nul 2>nul
+                                for /f %%i in ('docker ps -aq --filter "name=electiva2-ecommerce-mongo-local"') do docker rm -f %%i >nul 2>nul
+                                for /f %%i in ('docker ps -aq --filter "ancestor=electiva2-ecommerce-enviosperdidos-api-local:local"') do docker rm -f %%i >nul 2>nul
+                                for /f %%i in ('docker ps -aq --filter "ancestor=mongo:7"') do docker rm -f %%i >nul 2>nul
                                 docker network rm electiva2-ecommerce-network-local >nul 2>nul
                                 docker volume rm electiva2-ecommerce-mongo-data-local >nul 2>nul
-                                terraform destroy -input=false -auto-approve || true
                             '''
                         }
                     }

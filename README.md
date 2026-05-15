@@ -16,6 +16,7 @@ Incluye validaciones robustas, autenticación JWT, y persistencia en MongoDB (Mo
 - **Mongoose (MongoDB ODM)**
 - **dotenv**
 - **Swagger UI** (documentación interactiva)
+- **AWS SNS** (notificaciones por correo electrónico)
 
 Dev tools:
 - `ts-node-dev`
@@ -51,16 +52,15 @@ Ejemplo:
 ```
 PORT=5000
 MONGODB_URI=mongodb+srv://<user>:<password>@<cluster-url>
-DB_NAME=electiva2
 JWT_SECRET=tu_jwt_secreto_32_caracteres
 JWT_EXPIRES_IN=24h
-
-# Email Configuration (Optional - for order confirmations)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS_APP=your-16-char-app-password
 NODE_ENV=development
+
+# AWS SNS (notificaciones por correo)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=tu-access-key-id
+AWS_SECRET_ACCESS_KEY=tu-secret-access-key
+AWS_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:<account-id>:<topic-name>
 ```
 
 ### 4️⃣ Run the server
@@ -124,20 +124,37 @@ docker compose down -v
 
 ---
 
-## 🧱 Terraform + Docker local
+## 🧱 Terraform
 
-Si prefieres levantar la API con Terraform en lugar de Docker Compose, el módulo está en [`terraform/`](terraform/).
+El proyecto tiene la infraestructura dividida en dos módulos independientes:
 
-### Inicio rápido
+```
+terraform/
+├── aws/     → Infraestructura AWS (SNS). Se ejecuta una sola vez.
+└── docker/  → Contenedores locales (API + MongoDB). Se ejecuta en cada pipeline.
+```
+
+### Módulo AWS — setup inicial (una sola vez)
+
+Crea el topic SNS en AWS. Requiere credenciales con permisos `AmazonSNSFullAccess`.
 
 ```powershell
-cd terraform
-Copy-Item terraform.tfvars.example terraform.tfvars
+cd terraform/aws
 terraform init
 terraform apply
 ```
 
-La API quedará disponible en [http://localhost:5000](http://localhost:5000) y Swagger en [http://localhost:5000/api/v1/api-docs](http://localhost:5000/api/v1/api-docs).
+Copia el `sns_topic_arn` del output y agrégalo a tu `.env` como `AWS_SNS_TOPIC_ARN`.
+
+### Módulo Docker — levantar entorno local
+
+```powershell
+cd terraform/docker
+terraform init
+terraform apply
+```
+
+La API quedará disponible en [http://localhost:5001](http://localhost:5001) y Swagger en [http://localhost:5001/api/v1/api-docs](http://localhost:5001/api/v1/api-docs).
 
 ---
 
@@ -194,10 +211,10 @@ El proyecto cuenta con un pipeline de Jenkins que automatiza la validación, des
 |-------|-------------|
 | **Install dependencies** | Ejecuta `npm install` para instalar todas las dependencias del proyecto. |
 | **Run tests** | Corre la suite de pruebas con `npm test` (Jest). Si falla, el pipeline se detiene antes de tocar la infraestructura. |
-| **Terraform validate** | Verifica el formato (`fmt -check`) y la validez sintáctica del módulo Terraform en `terraform/`. |
+| **Terraform validate** | Verifica el formato (`fmt -check`) y la validez sintáctica del módulo `terraform/docker/`. No toca AWS. |
 | **Terraform cleanup** | Elimina contenedores, red y volumen Docker previos para garantizar un entorno limpio antes del despliegue. |
-| **Terraform plan** | Genera el plan de infraestructura (`tfplan`) con los recursos Docker que serán creados. |
-| **Terraform apply** | Aplica el plan: levanta la API y MongoDB en contenedores Docker locales usando Terraform. |
+| **Terraform plan** | Genera el plan del módulo `terraform/docker/` con los recursos Docker que serán creados. |
+| **Terraform apply** | Aplica el plan: levanta la API y MongoDB en contenedores Docker. Inyecta el ARN del topic SNS como variable de entorno. |
 | **Verify deployment** | Hace polling a `http://localhost:5001/` (hasta 30 intentos × 2 s) para confirmar que la API está respondiendo. |
 | **post: always** | Bloque que siempre se ejecuta al finalizar el pipeline (éxito o falla). La infraestructura queda corriendo para inspección. |
 

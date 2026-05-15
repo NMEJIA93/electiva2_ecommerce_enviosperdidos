@@ -5,12 +5,12 @@ import { MongoPreorderRepository } from '../../infraestructure/repositories/mong
 import { MongoInventoryRepository } from '../../infraestructure/repositories/mongo-inventory';
 import { MongoOrderRepository } from '../../infraestructure/repositories/mongo-order';
 import { buildOrderResponse } from '../dtos/order-dtos';
-import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
+import { SnsEmailService } from '../../infraestructure/services/sns-email';
 
 const preorderRepo = new MongoPreorderRepository();
 const inventoryRepo = new MongoInventoryRepository();
 const orderRepo = new MongoOrderRepository();
-const emailService = new NodemailerEmailService();
+const emailService = new SnsEmailService();
 
 export const createdCheckoutOrder = async (request: Request, response: Response) => {
     try {

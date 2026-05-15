@@ -1,8 +1,8 @@
 import { notificationDispatcher, NotificationEvent } from '../../domain/notifications/notification-dispatcher';
-import { NodemailerEmailService } from '../services/nodemailer-email';
+import { SnsEmailService } from '../services/sns-email';
 import { MongoTrackingRepository } from '../repositories/mongo-tracking';
 
-const emailService = new NodemailerEmailService();
+const emailService = new SnsEmailService();
 const trackingRepo = new MongoTrackingRepository();
 
 const handler = async (event: NotificationEvent) => {

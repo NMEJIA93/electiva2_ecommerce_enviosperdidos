@@ -6,10 +6,6 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
   }
 }
 
@@ -17,28 +13,8 @@ provider "docker" {
   host = var.docker_host
 }
 
-provider "aws" {
-  region = var.aws_region
-}
-
-resource "aws_sns_topic" "notifications" {
-  name = var.sns_topic_name
-}
-
-resource "aws_sns_topic_subscription" "email" {
-  count     = var.sns_email_subscription != "" ? 1 : 0
-  topic_arn = aws_sns_topic.notifications.arn
-  protocol  = "email"
-  endpoint  = var.sns_email_subscription
-}
-
-output "sns_topic_arn" {
-  description = "ARN del topic SNS de notificaciones."
-  value       = aws_sns_topic.notifications.arn
-}
-
 locals {
-  source_root = abspath("${path.module}/..")
+  source_root = abspath("${path.module}/../..")
 
   mongodb_uri = "mongodb://${var.mongo_container_name}:27017/${var.mongodb_database}"
 
@@ -51,7 +27,7 @@ locals {
     NOTIFICATION_CRON        = var.notification_cron
     NOTIFICATION_MAX_RETRIES = tostring(var.notification_max_retries)
     AWS_REGION               = var.aws_region
-    AWS_SNS_TOPIC_ARN        = aws_sns_topic.notifications.arn
+    AWS_SNS_TOPIC_ARN        = var.aws_sns_topic_arn
     AWS_ACCESS_KEY_ID        = var.aws_access_key_id
     AWS_SECRET_ACCESS_KEY    = var.aws_secret_access_key
   }

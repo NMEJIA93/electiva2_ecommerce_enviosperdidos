@@ -1,6 +1,5 @@
 import express, { Router, Request, Response } from 'express';
 import { useParamValidation } from '../middlewares/users-validators';
-import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
 
 import {
     authenticateToken,

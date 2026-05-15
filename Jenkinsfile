@@ -15,7 +15,11 @@ def terraformLocalEnv(String dockerHost) {
         'TF_VAR_jwt_expires_in=24h',
         'TF_VAR_node_env=development',
         'TF_VAR_notification_cron=*/5 * * * *',
-        'TF_VAR_notification_max_retries=3'
+        'TF_VAR_notification_max_retries=3',
+        'TF_VAR_aws_region=us-east-1',
+        'TF_VAR_aws_sns_topic_arn=arn:aws:sns:us-east-1:155190455562:electiva2-ecommerce-notifications',
+        "TF_VAR_aws_access_key_id=${env.AWS_ACCESS_KEY_ID ?: ''}",
+        "TF_VAR_aws_secret_access_key=${env.AWS_SECRET_ACCESS_KEY ?: ''}"
     ]
 }
 
@@ -59,23 +63,28 @@ pipeline {
             steps {
                 echo '[CI] Stage: Terraform validate - checking Terraform module in terraform/'
                 script {
-                    if (isUnix()) {
-                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                            sh '''
-                                cd terraform
-                                terraform fmt -check -recursive .
-                                terraform init -backend=false
-                                terraform validate
-                            '''
-                        }
-                    } else {
-                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                            bat '''
-                                cd terraform
-                                terraform fmt -check -recursive .
-                                terraform init -backend=false
-                                terraform validate
-                            '''
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        if (isUnix()) {
+                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                                sh '''
+                                    cd terraform/docker
+                                    terraform fmt -check -recursive ..
+                                    terraform init -backend=false
+                                    terraform validate
+                                '''
+                            }
+                        } else {
+                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                                bat '''
+                                    cd terraform/docker
+                                    terraform fmt -check -recursive ..
+                                    terraform init -backend=false
+                                    terraform validate
+                                '''
+                            }
                         }
                     }
                 }
@@ -118,19 +127,24 @@ pipeline {
             steps {
                 echo '[CI] Stage: Terraform plan - generating a local Docker plan'
                 script {
-                    if (isUnix()) {
-                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                            sh '''
-                                cd terraform
-                                terraform plan -input=false -out=tfplan
-                            '''
-                        }
-                    } else {
-                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                            bat '''
-                                cd terraform
-                                terraform plan -input=false -out=tfplan
-                            '''
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        if (isUnix()) {
+                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                                sh '''
+                                    cd terraform/docker
+                                    terraform plan -input=false -out=tfplan
+                                '''
+                            }
+                        } else {
+                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                                bat '''
+                                    cd terraform/docker
+                                    terraform plan -input=false -out=tfplan
+                                '''
+                            }
                         }
                     }
                 }
@@ -141,19 +155,24 @@ pipeline {
             steps {
                 echo '[CI] Stage: Terraform apply - creating Docker infrastructure from the saved plan'
                 script {
-                    if (isUnix()) {
-                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                            sh '''
-                                cd terraform
-                                terraform apply -input=false -auto-approve tfplan
-                            '''
-                        }
-                    } else {
-                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                            bat '''
-                                cd terraform
-                                terraform apply -input=false -auto-approve tfplan
-                            '''
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        if (isUnix()) {
+                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
+                                sh '''
+                                    cd terraform/docker
+                                    terraform apply -input=false -auto-approve tfplan
+                                '''
+                            }
+                        } else {
+                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
+                                bat '''
+                                    cd terraform/docker
+                                    terraform apply -input=false -auto-approve tfplan
+                                '''
+                            }
                         }
                     }
                 }

@@ -14,11 +14,11 @@ import {
 import { MongoUserRepository } from '../../infraestructure/repositories/mongo-user';
 import { IUserRepository } from '../../domain/repositories/IUser-repository';
 import { IEmailService } from '../../domain/services/email-services';
-import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
+import { SnsEmailService } from '../../infraestructure/services/sns-email';
 import { generateVerificationCode, getVerificationCodeExpiration } from '../../domain/business-rules/user-rules';
 
 
-const emailService: IEmailService = new NodemailerEmailService();
+const emailService: IEmailService = new SnsEmailService();
 const userRepo: IUserRepository = new MongoUserRepository();
 
 export const createUser = async (request: Request, response: Response) => {

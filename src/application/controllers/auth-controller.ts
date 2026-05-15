@@ -9,10 +9,10 @@ import { findUserById } from '../../domain/services/user-services';
 import { MongoLoginRepository } from '../../infraestructure/repositories/mongo-login';
 import { IUserRepository } from '../../domain/repositories/IUser-repository';
 import { IEmailService } from '../../domain/services/email-services';
-import { NodemailerEmailService } from '../../infraestructure/services/nodemailer-email';
+import { SnsEmailService } from '../../infraestructure/services/sns-email';
 
 const userRepo: IUserRepository = new MongoUserRepository();
-const emailService: IEmailService = new NodemailerEmailService();
+const emailService: IEmailService = new SnsEmailService();
 const loginRepo = new MongoLoginRepository();
 
 export const login = async (request: Request, response: Response) => {

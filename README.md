@@ -141,6 +141,72 @@ La API quedará disponible en [http://localhost:5000](http://localhost:5000) y S
 
 ---
 
+## 🔁 Pipeline CI/CD (Jenkins)
+
+El proyecto cuenta con un pipeline de Jenkins que automatiza la validación, despliegue y verificación del entorno local usando Terraform y Docker.
+
+### Flujo de stages
+
+```
+┌──────────────────────┐
+│  Install dependencies│
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│      Run tests       │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  Terraform validate  │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  Terraform cleanup   │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│    Terraform plan    │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│   Terraform apply    │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  Verify deployment   │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│     post: always     │
+└──────────────────────┘
+```
+
+### Descripción de cada stage
+
+| Stage | Descripción |
+|-------|-------------|
+| **Install dependencies** | Ejecuta `npm install` para instalar todas las dependencias del proyecto. |
+| **Run tests** | Corre la suite de pruebas con `npm test` (Jest). Si falla, el pipeline se detiene antes de tocar la infraestructura. |
+| **Terraform validate** | Verifica el formato (`fmt -check`) y la validez sintáctica del módulo Terraform en `terraform/`. |
+| **Terraform cleanup** | Elimina contenedores, red y volumen Docker previos para garantizar un entorno limpio antes del despliegue. |
+| **Terraform plan** | Genera el plan de infraestructura (`tfplan`) con los recursos Docker que serán creados. |
+| **Terraform apply** | Aplica el plan: levanta la API y MongoDB en contenedores Docker locales usando Terraform. |
+| **Verify deployment** | Hace polling a `http://localhost:5001/` (hasta 30 intentos × 2 s) para confirmar que la API está respondiendo. |
+| **post: always** | Bloque que siempre se ejecuta al finalizar el pipeline (éxito o falla). La infraestructura queda corriendo para inspección. |
+
+### Soporte multiplataforma
+
+Cada stage detecta el sistema operativo con `isUnix()` y ejecuta los comandos equivalentes en `sh` (Linux/Mac) o `bat`/`powershell` (Windows).
+
+---
+
 ## 📚 API Documentation
 
 ### 📝 Swagger UI

@@ -28,7 +28,7 @@ pipeline {
     }
 
     stages {
-        
+
         stage('Install dependencies') {
             steps {
                 echo '[CI] Stage: Install dependencies - running npm install'
@@ -37,6 +37,19 @@ pipeline {
                         sh 'npm install'
                     } else {
                         bat 'npm install'
+                    }
+                }
+            }
+        }
+
+        stage('Run tests') {
+            steps {
+                echo '[CI] Stage: Run tests - executing npm test'
+                script {
+                    if (isUnix()) {
+                        sh 'npm test'
+                    } else {
+                        bat 'npm test'
                     }
                 }
             }
@@ -177,18 +190,6 @@ pipeline {
             }
         }
 
-        stage('Run tests') {
-            steps {
-                echo '[CI] Stage: Run tests - executing npm test'
-                script {
-                    if (isUnix()) {
-                        sh 'npm test'
-                    } else {
-                        bat 'npm test'
-                    }
-                }
-            }
-        }
     }
 
     post {

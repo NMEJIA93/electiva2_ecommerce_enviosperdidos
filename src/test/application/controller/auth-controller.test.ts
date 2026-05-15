@@ -39,8 +39,8 @@ jest.mock('../../../infraestructure/repositories/mongo-login', () => ({
 }));
 
 // Mock del servicio de email
-jest.mock('../../../infraestructure/services/nodemailer-email', () => ({
-    NodemailerEmailService: jest.fn().mockImplementation(() => ({
+jest.mock('../../../infraestructure/services/sns-email', () => ({
+    SnsEmailService: jest.fn().mockImplementation(() => ({
         sendVerificationCode: jest.fn().mockResolvedValue({ success: true })
     }))
 }));

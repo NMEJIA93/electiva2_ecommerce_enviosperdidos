@@ -1,4 +1,4 @@
-import express, { Router, Request, Response } from 'express';
+import express, { Router } from 'express';
 import { useParamValidation } from '../middlewares/users-validators';
 
 import {
@@ -23,23 +23,6 @@ userRouter.get('/user/profile/:id', authenticateToken, authorizeProfileAccess, g
 userRouter.get('/users', getAllUsers)
 
 
-// TEMPORAL: Endpoint de prueba de email
-userRouter.post('/user/test-email', async (req: Request, res: Response) => {
-    const emailService = new NodemailerEmailService();
-    
-    const result = await emailService.sendVerificationCode(
-        'norbeymejiacortes@gmail.com', // ✅ Email específico sin comillas extras
-        'Test User',
-        '123456'
-    );
-    
-    res.json({
-        ok: result.success,
-        message: result.success ? 'Email sent! Check your inbox and SPAM folder' : 'Failed to send',
-        messageId: result.messageId,
-        error: result.error
-    });
-});
 
 
 export default userRouter;

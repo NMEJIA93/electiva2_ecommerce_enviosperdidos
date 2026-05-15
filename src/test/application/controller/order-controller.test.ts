@@ -23,8 +23,8 @@ jest.mock('../../../infraestructure/repositories/mongo-inventory', () => ({
     MongoInventoryRepository: jest.fn().mockImplementation(() => ({}))
 }));
 
-jest.mock('../../../infraestructure/services/nodemailer-email', () => ({
-    NodemailerEmailService: jest.fn().mockImplementation(() => ({
+jest.mock('../../../infraestructure/services/sns-email', () => ({
+    SnsEmailService: jest.fn().mockImplementation(() => ({
         sendOrderConfirmationEmail: jest.fn(() => Promise.resolve(true))
     }))
 }));

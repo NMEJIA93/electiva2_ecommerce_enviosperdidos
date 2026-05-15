@@ -122,9 +122,9 @@ jest.mock('../../../infraestructure/repositories/mongo-user', () => {
     };
 });
 
-jest.mock('../../../infraestructure/services/nodemailer-email', () => {
+jest.mock('../../../infraestructure/services/sns-email', () => {
     return {
-        NodemailerEmailService: jest.fn().mockImplementation(() => {
+        SnsEmailService: jest.fn().mockImplementation(() => {
             return {
                 sendVerificationCode: jest.fn(() => Promise.resolve({
                     success: true,
@@ -374,7 +374,7 @@ describe('UserController - createUser - Error Cases', () => {
         describe('When verification email fails to send', () => {
             it('should still return 201 and create the user', async () => {
 
-                const NodemailerEmailServiceMock = require('../../../infraestructure/services/nodemailer-email').NodemailerEmailService;
+                const NodemailerEmailServiceMock = require('../../../infraestructure/services/sns-email').SnsEmailService;
                 NodemailerEmailServiceMock.mockImplementationOnce(() => ({
                     sendVerificationCode: jest.fn(() => Promise.resolve({
                         success: false,
@@ -407,7 +407,7 @@ describe('UserController - createUser - Error Cases', () => {
                 // in the controller, so mockImplementationOnce cannot override the instance.
                 // To properly test this, the controller would need dependency injection for the email service.
                 
-                const NodemailerEmailServiceMock = require('../../../infraestructure/services/nodemailer-email').NodemailerEmailService;
+                const NodemailerEmailServiceMock = require('../../../infraestructure/services/sns-email').SnsEmailService;
                 NodemailerEmailServiceMock.mockImplementationOnce(() => ({
                     sendVerificationCode: jest.fn(() => Promise.resolve({
                         success: false,
@@ -443,7 +443,7 @@ describe('UserController - createUser - Error Cases', () => {
             it.skip('should return 503 when email service throws error', async () => {
 
 
-                const NodemailerEmailServiceMock = require('../../../infraestructure/services/nodemailer-email').NodemailerEmailService;
+                const NodemailerEmailServiceMock = require('../../../infraestructure/services/sns-email').SnsEmailService;
                 NodemailerEmailServiceMock.mockImplementationOnce(() => ({
                     sendVerificationCode: jest.fn(() => Promise.reject(new Error('Network error')))
                 }));
@@ -2268,7 +2268,7 @@ describe('UserController - resendCode', () => {
             it('should return 200 status code', async () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,
@@ -2305,7 +2305,7 @@ describe('UserController - resendCode', () => {
             it('should return success message', async () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,
@@ -2343,7 +2343,7 @@ describe('UserController - resendCode', () => {
             it('should call resendVerificationCode with email', async () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,
@@ -2382,7 +2382,7 @@ describe('UserController - resendCode', () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { generateVerificationCode } = require('../../../domain/business-rules/user-rules');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,
@@ -2493,7 +2493,7 @@ describe('UserController - resendCode', () => {
             it.skip('should return 503 status code - TODO: emailService is global instance', async () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,
@@ -2529,7 +2529,7 @@ describe('UserController - resendCode', () => {
             it.skip('should return email sending error message - TODO: emailService is global instance', async () => {
                 const { resendVerificationCode } = require('../../../domain/services/user-services');
                 const { MongoUserRepository } = require('../../../infraestructure/repositories/mongo-user');
-                const { NodemailerEmailService } = require('../../../infraestructure/services/nodemailer-email');
+                const { SnsEmailService: NodemailerEmailService } = require('../../../infraestructure/services/sns-email');
 
                 resendVerificationCode.mockResolvedValueOnce({
                     success: true,

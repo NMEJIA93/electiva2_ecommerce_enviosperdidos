@@ -3,8 +3,8 @@ jest.mock('../../../application/middlewares/users-validators', () => ({
   useParamValidation: jest.fn((req: any, res: any, next: any) => next())
 }));
 
-jest.mock('../../../infraestructure/services/nodemailer-email', () => ({
-  NodemailerEmailService: jest.fn().mockImplementation(() => ({
+jest.mock('../../../infraestructure/services/sns-email', () => ({
+  SnsEmailService: jest.fn().mockImplementation(() => ({
     sendVerificationCode: jest.fn().mockResolvedValue({
       success: true,
       messageId: 'test-message-id'
@@ -73,10 +73,5 @@ describe('Users Router', () => {
     expect(getAllRoute).toBeDefined();
   });
 
-  test('should have POST /user/test-email route', () => {
-    const testEmailRoute = userRouter.stack.find((layer: any) => 
-      layer.route && layer.route.path === '/user/test-email' && layer.route.methods.post
-    );
-    expect(testEmailRoute).toBeDefined();
-  });
+
 });

@@ -1,17 +1,12 @@
 def terraformEC2Env(String ecrUrl, String imageTag, String sshKeyPath) {
     return [
-        // AWS / infraestructura
         "TF_VAR_aws_region=us-east-1",
         "TF_VAR_instance_type=t2.micro",
         "TF_VAR_key_pair_name=electiva2-ecommerce-key",
         "TF_VAR_ssh_private_key_path=${sshKeyPath}",
         "TF_VAR_iam_instance_profile_name=electiva2-ecommerce-ec2-profile",
-
-        // ECR / imagen
         "TF_VAR_ecr_repository_url=${ecrUrl}",
         "TF_VAR_image_tag=${imageTag}",
-
-        // Aplicación
         "TF_VAR_app_port=5001",
         "TF_VAR_mongo_container_name=mongo",
         "TF_VAR_mongo_volume_name=mongo-data",
@@ -43,7 +38,7 @@ pipeline {
 
         stage('Install dependencies') {
             steps {
-                echo '[CI] Stage: Install dependencies - running npm install'
+                echo '[CI] Stage: Install dependencies'
                 script {
                     if (isUnix()) {
                         sh 'npm install'
@@ -56,7 +51,7 @@ pipeline {
 
         stage('Run tests') {
             steps {
-                echo '[CI] Stage: Run tests - executing npm test'
+                echo '[CI] Stage: Run tests'
                 script {
                     if (isUnix()) {
                         sh 'npm test'
@@ -69,7 +64,7 @@ pipeline {
 
         stage('Terraform validate') {
             steps {
-                echo '[CI] Stage: Terraform validate - checking terraform/ec2 module'
+                echo '[CI] Stage: Terraform validate - terraform/ec2'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
@@ -116,19 +111,33 @@ pipeline {
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                     ]) {
-                        def accountId = sh(
-                            script: 'aws sts get-caller-identity --query Account --output text',
-                            returnStdout: true
-                        ).trim()
-                        env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
-
-                        sh """
-                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}
-                            docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
-                            docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
-                            docker push ${env.ECR_URL}:${IMAGE_TAG}
-                            docker push ${env.ECR_URL}:latest
-                        """
+                        if (isUnix()) {
+                            def accountId = sh(
+                                script: 'aws sts get-caller-identity --query Account --output text',
+                                returnStdout: true
+                            ).trim()
+                            env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+                            sh """
+                                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
+                                docker push ${env.ECR_URL}:${IMAGE_TAG}
+                                docker push ${env.ECR_URL}:latest
+                            """
+                        } else {
+                            def accountId = powershell(
+                                script: 'aws sts get-caller-identity --query Account --output text',
+                                returnStdout: true
+                            ).trim()
+                            env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+                            bat """
+                                aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin ${env.ECR_URL}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
+                                docker push ${env.ECR_URL}:${IMAGE_TAG}
+                                docker push ${env.ECR_URL}:latest
+                            """
+                        }
                     }
                 }
             }
@@ -143,13 +152,23 @@ pipeline {
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
                         file(credentialsId: 'ec2-ssh-private-key',     variable: 'EC2_SSH_KEY_FILE')
                     ]) {
-                        sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        if (isUnix()) {
+                            sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        }
                         withEnv(terraformEC2Env(env.ECR_URL, env.IMAGE_TAG, env.EC2_SSH_KEY_FILE)) {
-                            sh '''
-                                cd terraform/ec2
-                                terraform init
-                                terraform plan -input=false -out=tfplan
-                            '''
+                            if (isUnix()) {
+                                sh '''
+                                    cd terraform/ec2
+                                    terraform init
+                                    terraform plan -input=false -out=tfplan
+                                '''
+                            } else {
+                                bat '''
+                                    cd terraform/ec2
+                                    terraform init
+                                    terraform plan -input=false -out=tfplan
+                                '''
+                            }
                         }
                     }
                 }
@@ -165,12 +184,21 @@ pipeline {
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
                         file(credentialsId: 'ec2-ssh-private-key',     variable: 'EC2_SSH_KEY_FILE')
                     ]) {
-                        sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        if (isUnix()) {
+                            sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        }
                         withEnv(terraformEC2Env(env.ECR_URL, env.IMAGE_TAG, env.EC2_SSH_KEY_FILE)) {
-                            sh '''
-                                cd terraform/ec2
-                                terraform apply -input=false -auto-approve tfplan
-                            '''
+                            if (isUnix()) {
+                                sh '''
+                                    cd terraform/ec2
+                                    terraform apply -input=false -auto-approve tfplan
+                                '''
+                            } else {
+                                bat '''
+                                    cd terraform/ec2
+                                    terraform apply -input=false -auto-approve tfplan
+                                '''
+                            }
                         }
                     }
                 }
@@ -185,34 +213,64 @@ pipeline {
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                     ]) {
-                        def ec2Ip = sh(
-                            script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip',
-                            returnStdout: true
-                        ).trim()
-
-                        sh """
-                            echo "[CI] Waiting for API at http://${ec2Ip}:5001/"
-                            for i in \$(seq 1 30); do
-                                if curl -fsS http://${ec2Ip}:5001/ >/dev/null 2>&1; then
-                                    echo "[CI] API is reachable at http://${ec2Ip}:5001/"
-                                    exit 0
-                                fi
-                                echo "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
-                                sleep 10
-                            done
-                            echo "[CI] ERROR: API did not become reachable in time"
-                            exit 1
-                        """
+                        if (isUnix()) {
+                            def ec2Ip = sh(
+                                script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip',
+                                returnStdout: true
+                            ).trim()
+                            sh """
+                                echo "[CI] Waiting for API at http://${ec2Ip}:5001/"
+                                for i in \$(seq 1 30); do
+                                    if curl -fsS http://${ec2Ip}:5001/ >/dev/null 2>&1; then
+                                        echo "[CI] API is reachable at http://${ec2Ip}:5001/"
+                                        exit 0
+                                    fi
+                                    echo "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
+                                    sleep 10
+                                done
+                                echo "[CI] ERROR: API did not become reachable in time"
+                                exit 1
+                            """
+                        } else {
+                            def ec2Ip = powershell(
+                                script: 'Set-Location terraform/ec2; terraform output -raw ec2_public_ip',
+                                returnStdout: true
+                            ).trim()
+                            powershell """
+                                \$ok = \$false
+                                Write-Host "[CI] Waiting for API at http://${ec2Ip}:5001/"
+                                for (\$i = 1; \$i -le 30; \$i++) {
+                                    try {
+                                        Invoke-WebRequest -UseBasicParsing "http://${ec2Ip}:5001/" | Out-Null
+                                        \$ok = \$true
+                                        Write-Host "[CI] API is reachable at http://${ec2Ip}:5001/"
+                                        break
+                                    } catch {
+                                        Write-Host "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
+                                        Start-Sleep -Seconds 10
+                                    }
+                                }
+                                if (-not \$ok) {
+                                    Write-Host "[CI] ERROR: API did not become reachable in time"
+                                    exit 1
+                                }
+                            """
+                        }
                     }
                 }
             }
         }
-
     }
 
     post {
         always {
-            sh 'docker image prune -f 2>/dev/null || true'
+            script {
+                if (isUnix()) {
+                    sh 'docker image prune -f 2>/dev/null || true'
+                } else {
+                    bat 'docker image prune -f 2>nul & exit /b 0'
+                }
+            }
             echo '[CI] Pipeline finished. EC2 instance left running in AWS.'
         }
         success {
@@ -221,11 +279,19 @@ pipeline {
                     string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
-                    def ec2Ip = sh(
-                        script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip 2>/dev/null || echo unknown',
-                        returnStdout: true
-                    ).trim()
-                    echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
+                    if (isUnix()) {
+                        def ec2Ip = sh(
+                            script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip 2>/dev/null || echo unknown',
+                            returnStdout: true
+                        ).trim()
+                        echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
+                    } else {
+                        def ec2Ip = powershell(
+                            script: 'Set-Location terraform/ec2; $ip = terraform output -raw ec2_public_ip 2>$null; if ($LASTEXITCODE -ne 0) { "unknown" } else { $ip }',
+                            returnStdout: true
+                        ).trim()
+                        echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
+                    }
                 }
             }
         }

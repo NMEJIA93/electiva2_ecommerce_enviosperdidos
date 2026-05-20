@@ -32,6 +32,7 @@ pipeline {
         AWS_REGION    = 'us-east-1'
         ECR_REPO_NAME = 'electiva2-ecommerce-api'
         IMAGE_TAG     = "${env.BUILD_NUMBER}"
+        ECR_URL       = '155190455562.dkr.ecr.us-east-1.amazonaws.com/electiva2-ecommerce-api'
     }
 
     stages {
@@ -112,30 +113,20 @@ pipeline {
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                     ]) {
                         if (isUnix()) {
-                            def accountId = sh(
-                                script: 'aws sts get-caller-identity --query Account --output text',
-                                returnStdout: true
-                            ).trim()
-                            env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
                             sh """
-                                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
-                                docker push ${env.ECR_URL}:${IMAGE_TAG}
-                                docker push ${env.ECR_URL}:latest
+                                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:${IMAGE_TAG}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:latest
+                                docker push ${ECR_URL}:${IMAGE_TAG}
+                                docker push ${ECR_URL}:latest
                             """
                         } else {
-                            def accountId = powershell(
-                                script: 'aws sts get-caller-identity --query Account --output text',
-                                returnStdout: true
-                            ).trim()
-                            env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
                             bat """
-                                aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin ${env.ECR_URL}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
-                                docker push ${env.ECR_URL}:${IMAGE_TAG}
-                                docker push ${env.ECR_URL}:latest
+                                aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin ${ECR_URL}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:${IMAGE_TAG}
+                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:latest
+                                docker push ${ECR_URL}:${IMAGE_TAG}
+                                docker push ${ECR_URL}:latest
                             """
                         }
                     }
@@ -232,28 +223,13 @@ pipeline {
                                 exit 1
                             """
                         } else {
-                            def ec2Ip = powershell(
-                                script: 'Set-Location terraform/ec2; terraform output -raw ec2_public_ip',
+                            def ec2Ip = bat(
+                                script: '@echo off\ncd terraform\\ec2\nterraform output -raw ec2_public_ip',
                                 returnStdout: true
                             ).trim()
-                            powershell """
-                                \$ok = \$false
-                                Write-Host "[CI] Waiting for API at http://${ec2Ip}:5001/"
-                                for (\$i = 1; \$i -le 30; \$i++) {
-                                    try {
-                                        Invoke-WebRequest -UseBasicParsing "http://${ec2Ip}:5001/" | Out-Null
-                                        \$ok = \$true
-                                        Write-Host "[CI] API is reachable at http://${ec2Ip}:5001/"
-                                        break
-                                    } catch {
-                                        Write-Host "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
-                                        Start-Sleep -Seconds 10
-                                    }
-                                }
-                                if (-not \$ok) {
-                                    Write-Host "[CI] ERROR: API did not become reachable in time"
-                                    exit 1
-                                }
+                            bat """
+                                echo [CI] Waiting for API at http://${ec2Ip}:5001/
+                                powershell -NoProfile -Command "\$ok=\$false; for(\$i=1;\$i-le30;\$i++){try{Invoke-WebRequest -UseBasicParsing 'http://${ec2Ip}:5001/' | Out-Null;\$ok=\$true;Write-Host '[CI] API is reachable at http://${ec2Ip}:5001/';break}catch{Write-Host \"[CI] Attempt \$i/30 - waiting 10s...\";Start-Sleep -Seconds 10}};if(-not \$ok){Write-Host '[CI] ERROR: API not reachable';exit 1}"
                             """
                         }
                     }
@@ -286,8 +262,8 @@ pipeline {
                         ).trim()
                         echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
                     } else {
-                        def ec2Ip = powershell(
-                            script: 'Set-Location terraform/ec2; $ip = terraform output -raw ec2_public_ip 2>$null; if ($LASTEXITCODE -ne 0) { "unknown" } else { $ip }',
+                        def ec2Ip = bat(
+                            script: '@echo off\ncd terraform\\ec2\nterraform output -raw ec2_public_ip 2>nul || echo unknown',
                             returnStdout: true
                         ).trim()
                         echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"

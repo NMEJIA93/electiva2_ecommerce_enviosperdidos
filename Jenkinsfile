@@ -1,25 +1,27 @@
-def terraformLocalEnv(String dockerHost) {
+def terraformEC2Env(String ecrUrl, String imageTag, String sshKeyPath) {
     return [
-        "TF_VAR_docker_host=${dockerHost}",
-        'TF_VAR_network_name=electiva2-ecommerce-network-local',
-        'TF_VAR_image_name=electiva2-ecommerce-enviosperdidos-api-local',
-        'TF_VAR_image_tag=local',
-        'TF_VAR_app_container_name=electiva2-ecommerce-api-local',
-        'TF_VAR_app_port=5001',
-        'TF_VAR_mongo_image=mongo:7',
-        'TF_VAR_mongo_container_name=electiva2-ecommerce-mongo-local',
-        'TF_VAR_mongo_volume_name=electiva2-ecommerce-mongo-data-local',
-        'TF_VAR_mongo_host_port=27019',
-        'TF_VAR_mongodb_database=ecommerce_enviosperdidos',
+        // AWS / infraestructura
+        "TF_VAR_aws_region=us-east-1",
+        "TF_VAR_instance_type=t2.micro",
+        "TF_VAR_key_pair_name=electiva2-ecommerce-key",
+        "TF_VAR_ssh_private_key_path=${sshKeyPath}",
+        "TF_VAR_iam_instance_profile_name=electiva2-ecommerce-ec2-profile",
+
+        // ECR / imagen
+        "TF_VAR_ecr_repository_url=${ecrUrl}",
+        "TF_VAR_image_tag=${imageTag}",
+
+        // Aplicación
+        "TF_VAR_app_port=5001",
+        "TF_VAR_mongo_container_name=mongo",
+        "TF_VAR_mongo_volume_name=mongo-data",
+        "TF_VAR_mongodb_database=ecommerce_enviosperdidos",
         'TF_VAR_jwt_secret=jenkins_ci_secret_key_at_least_32_chars_long',
         'TF_VAR_jwt_expires_in=24h',
-        'TF_VAR_node_env=development',
+        'TF_VAR_node_env=production',
         'TF_VAR_notification_cron=*/5 * * * *',
         'TF_VAR_notification_max_retries=3',
-        'TF_VAR_aws_region=us-east-1',
-        'TF_VAR_aws_sns_topic_arn=arn:aws:sns:us-east-1:155190455562:electiva2-ecommerce-notifications',
-        "TF_VAR_aws_access_key_id=${env.AWS_ACCESS_KEY_ID ?: ''}",
-        "TF_VAR_aws_secret_access_key=${env.AWS_SECRET_ACCESS_KEY ?: ''}"
+        'TF_VAR_aws_sns_topic_arn=arn:aws:sns:us-east-1:155190455562:electiva2-ecommerce-notifications'
     ]
 }
 
@@ -29,6 +31,12 @@ pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
+    }
+
+    environment {
+        AWS_REGION    = 'us-east-1'
+        ECR_REPO_NAME = 'electiva2-ecommerce-api'
+        IMAGE_TAG     = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -61,63 +69,66 @@ pipeline {
 
         stage('Terraform validate') {
             steps {
-                echo '[CI] Stage: Terraform validate - checking Terraform module in terraform/'
+                echo '[CI] Stage: Terraform validate - checking terraform/ec2 module'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
                         string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                     ]) {
                         if (isUnix()) {
-                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                                sh '''
-                                    cd terraform/docker
-                                    terraform fmt -check -recursive ..
-                                    terraform init -backend=false
-                                    terraform validate
-                                '''
-                            }
+                            sh '''
+                                cd terraform/ec2
+                                terraform fmt -check -recursive .
+                                terraform init -backend=false
+                                terraform validate
+                            '''
                         } else {
-                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                                bat '''
-                                    cd terraform/docker
-                                    terraform fmt -check -recursive ..
-                                    terraform init -backend=false
-                                    terraform validate
-                                '''
-                            }
+                            bat '''
+                                cd terraform/ec2
+                                terraform fmt -check -recursive .
+                                terraform init -backend=false
+                                terraform validate
+                            '''
                         }
                     }
                 }
             }
         }
 
-        stage('Terraform cleanup') {
+        stage('Build Docker image') {
             steps {
-                echo '[CI] Stage: Terraform cleanup - destroying previous local Docker infrastructure before planning'
+                echo '[CI] Stage: Build Docker image'
                 script {
                     if (isUnix()) {
-                        withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                            sh '''
-                                docker ps -aq --filter name=electiva2-ecommerce-api-local | xargs -r docker rm -f || true
-                                docker ps -aq --filter name=electiva2-ecommerce-mongo-local | xargs -r docker rm -f || true
-                                docker ps -aq --filter ancestor=electiva2-ecommerce-enviosperdidos-api-local:local | xargs -r docker rm -f || true
-                                docker ps -aq --filter ancestor=mongo:7 | xargs -r docker rm -f || true
-                                docker network rm electiva2-ecommerce-network-local || true
-                                docker volume rm electiva2-ecommerce-mongo-data-local || true
-                            '''
-                        }
+                        sh "docker build -t ${ECR_REPO_NAME}:${IMAGE_TAG} ."
                     } else {
-                        withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                            bat '''
-                                for /f %%i in ('docker ps -aq --filter "name=electiva2-ecommerce-api-local"') do docker rm -f %%i >nul 2>nul
-                                for /f %%i in ('docker ps -aq --filter "name=electiva2-ecommerce-mongo-local"') do docker rm -f %%i >nul 2>nul
-                                for /f %%i in ('docker ps -aq --filter "ancestor=electiva2-ecommerce-enviosperdidos-api-local:local"') do docker rm -f %%i >nul 2>nul
-                                for /f %%i in ('docker ps -aq --filter "ancestor=mongo:7"') do docker rm -f %%i >nul 2>nul
-                                for /f %%i in ('docker network ls -q --filter "name=electiva2-ecommerce-network-local"') do docker network rm %%i >nul 2>nul
-                                for /f %%i in ('docker volume ls -q --filter "name=electiva2-ecommerce-mongo-data-local"') do docker volume rm %%i >nul 2>nul
-                                exit /b 0
-                            '''
-                        }
+                        bat "docker build -t ${ECR_REPO_NAME}:${IMAGE_TAG} ."
+                    }
+                }
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                echo '[CI] Stage: Push image to Amazon ECR'
+                script {
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        def accountId = sh(
+                            script: 'aws sts get-caller-identity --query Account --output text',
+                            returnStdout: true
+                        ).trim()
+                        env.ECR_URL = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}
+                            docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
+                            docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${env.ECR_URL}:latest
+                            docker push ${env.ECR_URL}:${IMAGE_TAG}
+                            docker push ${env.ECR_URL}:latest
+                        """
                     }
                 }
             }
@@ -125,26 +136,20 @@ pipeline {
 
         stage('Terraform plan') {
             steps {
-                echo '[CI] Stage: Terraform plan - generating a local Docker plan'
+                echo '[CI] Stage: Terraform plan - terraform/ec2'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        file(credentialsId: 'ec2-ssh-private-key',     variable: 'EC2_SSH_KEY_FILE')
                     ]) {
-                        if (isUnix()) {
-                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                                sh '''
-                                    cd terraform/docker
-                                    terraform plan -input=false -out=tfplan
-                                '''
-                            }
-                        } else {
-                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                                bat '''
-                                    cd terraform/docker
-                                    terraform plan -input=false -out=tfplan
-                                '''
-                            }
+                        sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        withEnv(terraformEC2Env(env.ECR_URL, env.IMAGE_TAG, env.EC2_SSH_KEY_FILE)) {
+                            sh '''
+                                cd terraform/ec2
+                                terraform init
+                                terraform plan -input=false -out=tfplan
+                            '''
                         }
                     }
                 }
@@ -153,57 +158,51 @@ pipeline {
 
         stage('Terraform apply') {
             steps {
-                echo '[CI] Stage: Terraform apply - creating Docker infrastructure from the saved plan'
+                echo '[CI] Stage: Terraform apply - terraform/ec2'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        file(credentialsId: 'ec2-ssh-private-key',     variable: 'EC2_SSH_KEY_FILE')
                     ]) {
-                        if (isUnix()) {
-                            withEnv(terraformLocalEnv('unix:///var/run/docker.sock')) {
-                                sh '''
-                                    cd terraform/docker
-                                    terraform apply -input=false -auto-approve tfplan
-                                '''
-                            }
-                        } else {
-                            withEnv(terraformLocalEnv('npipe:////./pipe/docker_engine')) {
-                                bat '''
-                                    cd terraform/docker
-                                    terraform apply -input=false -auto-approve tfplan
-                                '''
-                            }
+                        sh "chmod 600 ${EC2_SSH_KEY_FILE}"
+                        withEnv(terraformEC2Env(env.ECR_URL, env.IMAGE_TAG, env.EC2_SSH_KEY_FILE)) {
+                            sh '''
+                                cd terraform/ec2
+                                terraform apply -input=false -auto-approve tfplan
+                            '''
                         }
                     }
                 }
             }
         }
 
-        stage('Verify terraform deployment') {
+        stage('Verify deployment') {
             steps {
-                echo '[CI] Stage: Verify terraform deployment - waiting for API container to answer'
+                echo '[CI] Stage: Verify deployment - health check en EC2'
                 script {
-                    if (isUnix()) {
-                        sh '''
-                            echo "[CI] Waiting for API container on http://localhost:5001/"
-                            for i in $(seq 1 30); do
-                                if curl -fsS http://localhost:5001/ >/dev/null; then
-                                    echo "[CI] Terraform deployment is reachable"
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        def ec2Ip = sh(
+                            script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip',
+                            returnStdout: true
+                        ).trim()
+
+                        sh """
+                            echo "[CI] Waiting for API at http://${ec2Ip}:5001/"
+                            for i in \$(seq 1 30); do
+                                if curl -fsS http://${ec2Ip}:5001/ >/dev/null 2>&1; then
+                                    echo "[CI] API is reachable at http://${ec2Ip}:5001/"
                                     exit 0
                                 fi
-                                sleep 2
+                                echo "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
+                                sleep 10
                             done
-                            echo "[CI] API did not become reachable in time"
-                            cd terraform
-                            terraform output || true
+                            echo "[CI] ERROR: API did not become reachable in time"
                             exit 1
-                        '''
-                    } else {
-                        bat '''
-                            echo [CI] Waiting for API container on http://localhost:5001/
-                            powershell -NoProfile -Command "$ok = $false; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:5001/ | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 2 } }; if (-not $ok) { Write-Host '[CI] API did not become reachable in time'; Set-Location terraform; terraform output; exit 1 }"
-                            echo [CI] Terraform deployment is reachable
-                        '''
+                        """
                     }
                 }
             }
@@ -213,15 +212,20 @@ pipeline {
 
     post {
         always {
+            sh 'docker image prune -f 2>/dev/null || true'
+            echo '[CI] Pipeline finished. EC2 instance left running in AWS.'
+        }
+        success {
             script {
-                if (isUnix()) {
-                    sh '''
-                        echo "[CI] Post: cleaning Terraform-managed infrastructure"
-                    '''
-                } else {
-                    bat '''
-                        echo [CI] Terraform-managed infrastructure left running after pipeline completion
-                    '''
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    def ec2Ip = sh(
+                        script: 'cd terraform/ec2 && terraform output -raw ec2_public_ip 2>/dev/null || echo unknown',
+                        returnStdout: true
+                    ).trim()
+                    echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
                 }
             }
         }

@@ -13,10 +13,43 @@ provider "aws" {
   region = var.aws_region
 }
 
+locals {
+  source_root = abspath("${path.module}/../..")
+}
+
+# ─── Token ECR via SDK de Terraform (no requiere aws CLI instalado) ───────────
+
+data "aws_ecr_authorization_token" "token" {}
+
 # ─── Trigger de recreación de EC2 por cambio de imagen ───────────────────────
 
 resource "terraform_data" "image_tag" {
   input = var.image_tag
+}
+
+# ─── Build y Push de imagen Docker a ECR ─────────────────────────────────────
+
+resource "null_resource" "docker_build_push" {
+  triggers = {
+    image_tag = var.image_tag
+  }
+
+  provisioner "local-exec" {
+    working_dir = local.source_root
+    command     = "docker build -t ${var.ecr_repository_url}:${var.image_tag} -t ${var.ecr_repository_url}:latest ."
+  }
+
+  provisioner "local-exec" {
+    command = "docker login -u AWS -p ${data.aws_ecr_authorization_token.token.password} ${data.aws_ecr_authorization_token.token.proxy_endpoint}"
+  }
+
+  provisioner "local-exec" {
+    command = "docker push ${var.ecr_repository_url}:${var.image_tag}"
+  }
+
+  provisioner "local-exec" {
+    command = "docker push ${var.ecr_repository_url}:latest"
+  }
 }
 
 # ─── Security Group ───────────────────────────────────────────────────────────
@@ -67,6 +100,8 @@ resource "aws_instance" "app" {
     replace_triggered_by = [terraform_data.image_tag]
   }
 
+  depends_on = [null_resource.docker_build_push]
+
   connection {
     type        = "ssh"
     user        = "ec2-user"
@@ -83,10 +118,10 @@ resource "aws_instance" "app" {
       "sudo systemctl start docker",
       "sudo systemctl enable docker",
 
-      # ── Login a ECR usando el Instance Role (sin credenciales hardcodeadas) ──
+      # ── Login a ECR usando el Instance Role ───────────────────────────────
       "aws ecr get-login-password --region ${var.aws_region} | sudo docker login --username AWS --password-stdin ${var.ecr_repository_url}",
 
-      # ── Limpiar contenedores existentes para idempotencia en re-deploys ───
+      # ── Limpiar contenedores existentes ───────────────────────────────────
       "sudo docker stop app ${var.mongo_container_name} 2>/dev/null || true",
       "sudo docker rm   app ${var.mongo_container_name} 2>/dev/null || true",
 
@@ -102,7 +137,7 @@ resource "aws_instance" "app" {
       # ── Esperar a que MongoDB esté listo ──────────────────────────────────
       "for i in $(seq 1 30); do sudo docker exec ${var.mongo_container_name} mongosh --quiet --eval 'db.adminCommand(\"ping\").ok' 2>/dev/null && break || sleep 3; done",
 
-      # ── Pull de la imagen de la app desde ECR ────────────────────────────
+      # ── Pull de la imagen desde ECR ───────────────────────────────────────
       "sudo docker pull ${var.ecr_repository_url}:${var.image_tag}",
 
       # ── Iniciar contenedor de la API ──────────────────────────────────────

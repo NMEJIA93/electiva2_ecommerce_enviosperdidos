@@ -29,10 +29,8 @@ pipeline {
     }
 
     environment {
-        AWS_REGION    = 'us-east-1'
-        ECR_REPO_NAME = 'electiva2-ecommerce-api'
-        IMAGE_TAG     = "${env.BUILD_NUMBER}"
-        ECR_URL       = '155190455562.dkr.ecr.us-east-1.amazonaws.com/electiva2-ecommerce-api'
+        ECR_URL   = '155190455562.dkr.ecr.us-east-1.amazonaws.com/electiva2-ecommerce-api'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -91,52 +89,9 @@ pipeline {
             }
         }
 
-        stage('Build Docker image') {
-            steps {
-                echo '[CI] Stage: Build Docker image'
-                script {
-                    if (isUnix()) {
-                        sh "docker build -t ${ECR_REPO_NAME}:${IMAGE_TAG} ."
-                    } else {
-                        bat "docker build -t ${ECR_REPO_NAME}:${IMAGE_TAG} ."
-                    }
-                }
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                echo '[CI] Stage: Push image to Amazon ECR'
-                script {
-                    withCredentials([
-                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                    ]) {
-                        if (isUnix()) {
-                            sh """
-                                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:${IMAGE_TAG}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:latest
-                                docker push ${ECR_URL}:${IMAGE_TAG}
-                                docker push ${ECR_URL}:latest
-                            """
-                        } else {
-                            bat """
-                                aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin ${ECR_URL}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:${IMAGE_TAG}
-                                docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}:latest
-                                docker push ${ECR_URL}:${IMAGE_TAG}
-                                docker push ${ECR_URL}:latest
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Terraform plan') {
             steps {
-                echo '[CI] Stage: Terraform plan - terraform/ec2'
+                echo '[CI] Stage: Terraform plan - build imagen + plan EC2'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
@@ -168,7 +123,7 @@ pipeline {
 
         stage('Terraform apply') {
             steps {
-                echo '[CI] Stage: Terraform apply - terraform/ec2'
+                echo '[CI] Stage: Terraform apply - build, push ECR, crear EC2, desplegar contenedores'
                 script {
                     withCredentials([
                         string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
@@ -216,7 +171,7 @@ pipeline {
                                         echo "[CI] API is reachable at http://${ec2Ip}:5001/"
                                         exit 0
                                     fi
-                                    echo "[CI] Attempt \$i/30 - not ready yet, waiting 10s..."
+                                    echo "[CI] Attempt \$i/30 - waiting 10s..."
                                     sleep 10
                                 done
                                 echo "[CI] ERROR: API did not become reachable in time"
@@ -224,12 +179,12 @@ pipeline {
                             """
                         } else {
                             def ec2Ip = bat(
-                                script: '@echo off\ncd terraform\\ec2\nterraform output -raw ec2_public_ip',
+                                script: '@cd terraform\\ec2 && terraform output -raw ec2_public_ip',
                                 returnStdout: true
                             ).trim()
                             bat """
                                 echo [CI] Waiting for API at http://${ec2Ip}:5001/
-                                powershell -NoProfile -Command "\$ok=\$false; for(\$i=1;\$i-le30;\$i++){try{Invoke-WebRequest -UseBasicParsing 'http://${ec2Ip}:5001/' | Out-Null;\$ok=\$true;Write-Host '[CI] API is reachable at http://${ec2Ip}:5001/';break}catch{Write-Host \"[CI] Attempt \$i/30 - waiting 10s...\";Start-Sleep -Seconds 10}};if(-not \$ok){Write-Host '[CI] ERROR: API not reachable';exit 1}"
+                                powershell -NoProfile -Command "\$ok=\$false; for(\$i=1;\$i-le30;\$i++){try{Invoke-WebRequest -UseBasicParsing 'http://${ec2Ip}:5001/' | Out-Null;\$ok=\$true;Write-Host '[CI] API reachable';break}catch{Write-Host \"[CI] Attempt \$i/30 - waiting 10s...\";Start-Sleep -Seconds 10}};if(-not \$ok){exit 1}"
                             """
                         }
                     }
@@ -240,13 +195,6 @@ pipeline {
 
     post {
         always {
-            script {
-                if (isUnix()) {
-                    sh 'docker image prune -f 2>/dev/null || true'
-                } else {
-                    bat 'docker image prune -f 2>nul & exit /b 0'
-                }
-            }
             echo '[CI] Pipeline finished. EC2 instance left running in AWS.'
         }
         success {
@@ -263,7 +211,7 @@ pipeline {
                         echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"
                     } else {
                         def ec2Ip = bat(
-                            script: '@echo off\ncd terraform\\ec2\nterraform output -raw ec2_public_ip 2>nul || echo unknown',
+                            script: '@cd terraform\\ec2 && terraform output -raw ec2_public_ip 2>nul || echo unknown',
                             returnStdout: true
                         ).trim()
                         echo "[CI] Deployment successful. API running at http://${ec2Ip}:5001/"

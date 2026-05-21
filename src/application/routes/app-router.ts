@@ -36,6 +36,11 @@ appRouter.use('/api/v1', inventoryRouter);
 appRouter.use('/api/v1', catalogRouter);
 appRouter.use('/api/v1', preorderRouter);
 appRouter.use('/api/v1/orders', orderRouter);
+appRouter.use('/api/v1/hello', (req: Request, res: Response) => {
+    res.status(200).json({
+        message: 'Hello World'
+    });
+});
 
 
 export default appRouter;

@@ -126,17 +126,18 @@ docker compose down -v
 
 ## 🧱 Terraform
 
-El proyecto tiene la infraestructura dividida en dos módulos independientes:
+La infraestructura está dividida en tres módulos independientes:
 
 ```
 terraform/
-├── aws/     → Infraestructura AWS (SNS). Se ejecuta una sola vez.
-└── docker/  → Contenedores locales (API + MongoDB). Se ejecuta en cada pipeline.
+├── aws/     → Infraestructura base AWS (ECR, IAM Role, SNS). Se ejecuta una sola vez.
+├── ec2/     → Despliegue en EC2 (build Docker, push ECR, crear instancia, correr contenedores). Lo ejecuta el pipeline.
+└── docker/  → Contenedores locales (API + MongoDB). Solo para desarrollo individual.
 ```
 
 ### Módulo AWS — setup inicial (una sola vez)
 
-Crea el topic SNS en AWS. Requiere credenciales con permisos `AmazonSNSFullAccess`.
+Crea el repositorio ECR, el IAM Instance Profile para EC2 y el topic SNS. Requiere credenciales con permisos de ECR, IAM y SNS.
 
 ```powershell
 cd terraform/aws
@@ -144,9 +145,63 @@ terraform init
 terraform apply
 ```
 
-Copia el `sns_topic_arn` del output y agrégalo a tu `.env` como `AWS_SNS_TOPIC_ARN`.
+Outputs relevantes:
+- `ecr_repository_url` → URL del repositorio ECR donde se suben las imágenes
+- `iam_instance_profile_name` → nombre del profile asignado a la EC2
+- `sns_topic_arn` → ARN del topic SNS para notificaciones por correo
 
-### Módulo Docker — levantar entorno local
+### Módulo EC2 — despliegue en AWS (lo ejecuta Jenkins)
+
+Construye la imagen Docker, la sube a ECR y despliega una instancia EC2 (Amazon Linux 2023, t3.micro) con dos contenedores: MongoDB y la API.
+
+```powershell
+cd terraform/ec2
+terraform init
+terraform apply \
+  -var="ecr_repository_url=<ECR_URL>" \
+  -var="jwt_secret=<SECRET>" \
+  -var="aws_sns_topic_arn=<SNS_ARN>" \
+  -var="aws_access_key_id=<KEY_ID>" \
+  -var="aws_secret_access_key=<SECRET_KEY>"
+```
+
+> En el pipeline de Jenkins todas las variables se inyectan automáticamente como `TF_VAR_*`.
+
+Outputs:
+- `ec2_public_ip` → IP pública de la instancia
+- `api_url` → URL base de la API (`http://<IP>:5001/`)
+
+#### Arquitectura de la instancia EC2
+
+```
+EC2 (t3.micro) — Amazon Linux 2023
+│
+├── Docker network: app-net
+├── Contenedor: mongo        (puerto 27017, solo interno)
+└── Contenedor: app (API)    (puerto 5001, expuesto al exterior)
+```
+
+El Security Group expone únicamente los puertos **22** (SSH) y **5001** (API). MongoDB no es alcanzable desde internet.
+
+#### Comportamiento ante nuevos builds
+
+Cada build de Jenkins genera un `IMAGE_TAG` distinto (igual al `BUILD_NUMBER`). Terraform detecta el cambio mediante `replace_triggered_by` y **recrea la instancia EC2** automáticamente, garantizando que siempre corra la imagen más reciente.
+
+#### Destruir la instancia EC2
+
+```powershell
+$env:TF_VAR_ecr_repository_url   = "<ECR_URL>"
+$env:TF_VAR_jwt_secret            = "<SECRET>"
+$env:TF_VAR_aws_sns_topic_arn     = "<SNS_ARN>"
+$env:TF_VAR_aws_access_key_id     = "<KEY_ID>"
+$env:TF_VAR_aws_secret_access_key = "<SECRET_KEY>"
+$env:TF_VAR_ssh_private_key_path  = "ruta/a/electiva2-ecommerce-key.pem"
+
+cd terraform/ec2
+terraform destroy -auto-approve
+```
+
+### Módulo Docker — entorno local (desarrollo)
 
 ```powershell
 cd terraform/docker
@@ -154,13 +209,19 @@ terraform init
 terraform apply
 ```
 
-La API quedará disponible en [http://localhost:5001](http://localhost:5001) y Swagger en [http://localhost:5001/api/v1/api-docs](http://localhost:5001/api/v1/api-docs).
+La API queda disponible en [http://localhost:5001](http://localhost:5001) y Swagger en [http://localhost:5001/api/v1/api-docs](http://localhost:5001/api/v1/api-docs).
+
+### Prerequisitos manuales (antes del primer pipeline)
+
+1. **Key Pair en AWS Console** → EC2 → Key Pairs → crear `electiva2-ecommerce-key` en formato `.pem` y descargarlo.
+2. **Credential en Jenkins** → Manage Credentials → Secret file con ID `ec2-ssh-private-key` → subir el `.pem`.
+3. **Aplicar `terraform/aws/`** para crear ECR e IAM Instance Profile antes de correr el pipeline por primera vez.
 
 ---
 
 ## 🔁 Pipeline CI/CD (Jenkins)
 
-El proyecto cuenta con un pipeline de Jenkins que automatiza la validación, despliegue y verificación del entorno local usando Terraform y Docker.
+El pipeline automatiza build, push a ECR, despliegue en EC2 y verificación del endpoint. Soporta agentes Windows y Linux mediante `isUnix()`.
 
 ### Flujo de stages
 
@@ -176,27 +237,17 @@ El proyecto cuenta con un pipeline de Jenkins que automatiza la validación, des
            │
            ▼
 ┌──────────────────────┐
-│  Terraform validate  │
+│  Terraform validate  │  ← terraform/ec2/
 └──────────┬───────────┘
            │
            ▼
 ┌──────────────────────┐
-│  Terraform cleanup   │
+│   Terraform apply    │  ← build Docker + push ECR + crear EC2 + correr contenedores
 └──────────┬───────────┘
            │
            ▼
 ┌──────────────────────┐
-│    Terraform plan    │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│   Terraform apply    │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│  Verify deployment   │
+│  Verify deployment   │  ← health check contra IP pública de EC2
 └──────────┬───────────┘
            │
            ▼
@@ -209,18 +260,24 @@ El proyecto cuenta con un pipeline de Jenkins que automatiza la validación, des
 
 | Stage | Descripción |
 |-------|-------------|
-| **Install dependencies** | Ejecuta `npm install` para instalar todas las dependencias del proyecto. |
+| **Install dependencies** | Ejecuta `npm install` para instalar las dependencias del proyecto. |
 | **Run tests** | Corre la suite de pruebas con `npm test` (Jest). Si falla, el pipeline se detiene antes de tocar la infraestructura. |
-| **Terraform validate** | Verifica el formato (`fmt -check`) y la validez sintáctica del módulo `terraform/docker/`. No toca AWS. |
-| **Terraform cleanup** | Elimina contenedores, red y volumen Docker previos para garantizar un entorno limpio antes del despliegue. |
-| **Terraform plan** | Genera el plan del módulo `terraform/docker/` con los recursos Docker que serán creados. |
-| **Terraform apply** | Aplica el plan: levanta la API y MongoDB en contenedores Docker. Inyecta el ARN del topic SNS como variable de entorno. |
-| **Verify deployment** | Hace polling a `http://localhost:5001/` (hasta 30 intentos × 2 s) para confirmar que la API está respondiendo. |
-| **post: always** | Bloque que siempre se ejecuta al finalizar el pipeline (éxito o falla). La infraestructura queda corriendo para inspección. |
+| **Terraform validate** | Verifica el formato (`fmt -check`) y la validez sintáctica del módulo `terraform/ec2/`. Usa `-backend=false` para no necesitar estado remoto. |
+| **Terraform apply** | Construye la imagen Docker localmente, la sube a ECR con tag `BUILD_NUMBER` y crea la instancia EC2 vía `remote-exec` (instala Docker, pull desde ECR, levanta MongoDB + API). |
+| **Verify deployment** | Obtiene la IP pública de EC2 desde `terraform output` y hace polling a `http://<IP>:5001/` (hasta 30 intentos × 10 s) para confirmar que la API responde. |
+| **post: always** | La instancia EC2 queda corriendo en AWS al finalizar el pipeline (éxito o falla). |
+
+### Credenciales requeridas en Jenkins
+
+| ID | Tipo | Uso |
+|----|------|-----|
+| `aws-access-key-id` | Secret text | `AWS_ACCESS_KEY_ID` para Terraform y el contenedor de la app |
+| `aws-secret-access-key` | Secret text | `AWS_SECRET_ACCESS_KEY` para Terraform y el contenedor de la app |
+| `ec2-ssh-private-key` | Secret file | Clave `.pem` para SSH en `remote-exec` |
 
 ### Soporte multiplataforma
 
-Cada stage detecta el sistema operativo con `isUnix()` y ejecuta los comandos equivalentes en `sh` (Linux/Mac) o `bat`/`powershell` (Windows).
+Cada stage detecta el SO con `isUnix()` y ejecuta los comandos equivalentes en `sh` (Linux/Mac) o `bat`/`powershell` (Windows).
 
 ---
 

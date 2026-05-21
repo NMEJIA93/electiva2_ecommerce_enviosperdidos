@@ -52,6 +52,21 @@ resource "null_resource" "docker_build_push" {
   }
 }
 
+# ─── Elastic IP (IP pública estática) ────────────────────────────────────────
+
+resource "aws_eip" "app" {
+  domain = "vpc"
+
+  tags = {
+    Name = "electiva2-ecommerce-eip"
+  }
+}
+
+resource "aws_eip_association" "app" {
+  instance_id   = aws_instance.app.id
+  allocation_id = aws_eip.app.id
+}
+
 # ─── Security Group ───────────────────────────────────────────────────────────
 
 resource "aws_security_group" "app" {

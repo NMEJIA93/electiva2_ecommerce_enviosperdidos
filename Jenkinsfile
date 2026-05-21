@@ -63,6 +63,19 @@ pipeline {
             }
         }
 
+        stage('Build') {
+            steps {
+                echo '[CI] Stage: Build - compilación TypeScript'
+                script {
+                    if (isUnix()) {
+                        sh 'npm run build'
+                    } else {
+                        bat 'npm run build'
+                    }
+                }
+            }
+        }
+
         stage('Terraform validate') {
             steps {
                 echo '[CI] Stage: Terraform validate - terraform/ec2'

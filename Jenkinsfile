@@ -1,7 +1,7 @@
 def terraformEC2Env(String ecrUrl, String imageTag, String sshKeyPath) {
     return [
         "TF_VAR_aws_region=us-east-1",
-        "TF_VAR_instance_type=t2.micro",
+        "TF_VAR_instance_type=t3.micro",
         "TF_VAR_key_pair_name=electiva2-ecommerce-key",
         "TF_VAR_ssh_private_key_path=${sshKeyPath}",
         "TF_VAR_iam_instance_profile_name=electiva2-ecommerce-ec2-profile",
@@ -89,38 +89,6 @@ pipeline {
             }
         }
 
-        stage('Terraform plan') {
-            steps {
-                echo '[CI] Stage: Terraform plan - build imagen + plan EC2'
-                script {
-                    withCredentials([
-                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
-                        file(credentialsId: 'ec2-ssh-private-key',     variable: 'EC2_SSH_KEY_FILE')
-                    ]) {
-                        if (isUnix()) {
-                            sh "chmod 600 ${EC2_SSH_KEY_FILE}"
-                        }
-                        withEnv(terraformEC2Env(env.ECR_URL, env.IMAGE_TAG, env.EC2_SSH_KEY_FILE)) {
-                            if (isUnix()) {
-                                sh '''
-                                    cd terraform/ec2
-                                    terraform init
-                                    terraform plan -input=false -out=tfplan
-                                '''
-                            } else {
-                                bat '''
-                                    cd terraform/ec2
-                                    terraform init
-                                    terraform plan -input=false -out=tfplan
-                                '''
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Terraform apply') {
             steps {
                 echo '[CI] Stage: Terraform apply - build, push ECR, crear EC2, desplegar contenedores'
@@ -137,12 +105,14 @@ pipeline {
                             if (isUnix()) {
                                 sh '''
                                     cd terraform/ec2
-                                    terraform apply -input=false -auto-approve tfplan
+                                    terraform init
+                                    terraform apply -input=false -auto-approve
                                 '''
                             } else {
                                 bat '''
                                     cd terraform/ec2
-                                    terraform apply -input=false -auto-approve tfplan
+                                    terraform init
+                                    terraform apply -input=false -auto-approve
                                 '''
                             }
                         }

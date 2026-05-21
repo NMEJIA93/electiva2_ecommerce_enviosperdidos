@@ -16,7 +16,9 @@ def terraformEC2Env(String ecrUrl, String imageTag, String sshKeyPath) {
         'TF_VAR_node_env=production',
         'TF_VAR_notification_cron=*/5 * * * *',
         'TF_VAR_notification_max_retries=3',
-        'TF_VAR_aws_sns_topic_arn=arn:aws:sns:us-east-1:155190455562:electiva2-ecommerce-notifications'
+        'TF_VAR_aws_sns_topic_arn=arn:aws:sns:us-east-1:155190455562:electiva2-ecommerce-notifications',
+        "TF_VAR_aws_access_key_id=${env.AWS_ACCESS_KEY_ID}",
+        "TF_VAR_aws_secret_access_key=${env.AWS_SECRET_ACCESS_KEY}"
     ]
 }
 

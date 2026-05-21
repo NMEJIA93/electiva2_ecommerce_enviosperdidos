@@ -102,3 +102,15 @@ variable "aws_sns_topic_arn" {
   description = "ARN of the SNS topic for notifications."
   type        = string
 }
+
+variable "aws_access_key_id" {
+  description = "AWS Access Key ID injected into the app container for SDK authentication."
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS Secret Access Key injected into the app container for SDK authentication."
+  type        = string
+  sensitive   = true
+}

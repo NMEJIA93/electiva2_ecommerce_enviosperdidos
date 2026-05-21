@@ -149,7 +149,7 @@ resource "aws_instance" "app" {
       "sudo docker pull ${var.ecr_repository_url}:${var.image_tag}",
 
       # ── Iniciar contenedor de la API ──────────────────────────────────────
-      "sudo docker run -d --name app --network app-net --restart unless-stopped -p ${var.app_port}:${var.app_port} -e PORT=${var.app_port} -e MONGODB_URI=mongodb://${var.mongo_container_name}:27017/${var.mongodb_database} -e JWT_SECRET='${var.jwt_secret}' -e JWT_EXPIRES_IN=${var.jwt_expires_in} -e NODE_ENV=${var.node_env} -e 'NOTIFICATION_CRON=${var.notification_cron}' -e NOTIFICATION_MAX_RETRIES=${var.notification_max_retries} -e AWS_REGION=${var.aws_region} -e AWS_SNS_TOPIC_ARN=${var.aws_sns_topic_arn} ${var.ecr_repository_url}:${var.image_tag}"
+      "sudo docker run -d --name app --network app-net --restart unless-stopped -p ${var.app_port}:${var.app_port} -e PORT=${var.app_port} -e MONGODB_URI=mongodb://${var.mongo_container_name}:27017/${var.mongodb_database} -e JWT_SECRET='${var.jwt_secret}' -e JWT_EXPIRES_IN=${var.jwt_expires_in} -e NODE_ENV=${var.node_env} -e 'NOTIFICATION_CRON=${var.notification_cron}' -e NOTIFICATION_MAX_RETRIES=${var.notification_max_retries} -e AWS_REGION=${var.aws_region} -e AWS_SNS_TOPIC_ARN=${var.aws_sns_topic_arn} -e AWS_ACCESS_KEY_ID=${var.aws_access_key_id} -e AWS_SECRET_ACCESS_KEY=${var.aws_secret_access_key} ${var.ecr_repository_url}:${var.image_tag}"
     ]
   }
 }

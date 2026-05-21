@@ -360,6 +360,7 @@ swagger.yaml
 - Pruebas unitarias con Jest para controladores y servicios principales.
 - Cobertura disponible en carpeta `/coverage`.
 
+
 ---
 
 ## 📄 License

@@ -113,10 +113,11 @@ resource "aws_instance" "app" {
   provisioner "remote-exec" {
     inline = [
       # ── Instalar Docker ────────────────────────────────────────────────────
-      "sudo dnf update -y -q",
-      "sudo dnf install -y docker",
+      "sudo yum update -y -q",
+      "sudo yum install -y docker",
       "sudo systemctl start docker",
       "sudo systemctl enable docker",
+      "sleep 5",
 
       # ── Login a ECR usando el Instance Role ───────────────────────────────
       "aws ecr get-login-password --region ${var.aws_region} | sudo docker login --username AWS --password-stdin ${var.ecr_repository_url}",

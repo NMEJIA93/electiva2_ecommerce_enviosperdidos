@@ -72,7 +72,6 @@ variable "mongodb_database" {
 variable "jwt_secret" {
   description = "JWT secret for the API."
   type        = string
-  sensitive   = true
 }
 
 variable "jwt_expires_in" {

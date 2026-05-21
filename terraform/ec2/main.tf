@@ -92,6 +92,13 @@ resource "aws_instance" "app" {
   iam_instance_profile        = var.iam_instance_profile_name
   associate_public_ip_address = true
 
+  # Permite que contenedores Docker accedan al IMDS para obtener credenciales IAM
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
   tags = {
     Name = "electiva2-ecommerce-api"
   }
